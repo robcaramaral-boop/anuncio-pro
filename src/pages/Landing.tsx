@@ -39,9 +39,9 @@ export default function Landing({ onLoginClick }: LandingProps) {
     document.getElementById('planos')?.scrollIntoView({ behavior: 'smooth' });
   };
 
-  // 👉 Troque a rota se necessário (se você tiver /signup de verdade)
-  const goToFreeTrial = () => {
-    window.location.href = "/login?signup=1";
+  const goToLoginForFreeTrial = () => {
+    // Vai pro login normal (lá tem o botão "Criar acesso")
+    onLoginClick();
   };
 
   return (
@@ -59,21 +59,13 @@ export default function Landing({ onLoginClick }: LandingProps) {
             </span>
           </div>
 
-          <div className="flex items-center gap-3">
-            <button
-              onClick={goToFreeTrial}
-              className="hidden sm:inline-flex text-sm font-black text-orange-300 hover:text-white transition-colors border border-orange-500/40 hover:border-orange-500 px-5 py-2.5 rounded-full"
-            >
-              Teste grátis
-            </button>
-
-            <button
-              onClick={onLoginClick}
-              className="text-sm font-bold text-slate-300 hover:text-white transition-colors border border-slate-700 hover:border-slate-500 px-6 py-2.5 rounded-full"
-            >
-              Acessar Sistema
-            </button>
-          </div>
+          {/* ✅ Aqui fica só o Acessar Sistema */}
+          <button
+            onClick={onLoginClick}
+            className="text-sm font-bold text-slate-300 hover:text-white transition-colors border border-slate-700 hover:border-slate-500 px-6 py-2.5 rounded-full"
+          >
+            Acessar Sistema
+          </button>
         </div>
       </header>
 
@@ -96,7 +88,8 @@ export default function Landing({ onLoginClick }: LandingProps) {
             transition={{ delay: 0.1 }}
             className="text-5xl md:text-7xl font-black text-white mb-6 leading-[1.1] tracking-tight"
           >
-            Venda muito mais na <span className="text-orange-500">Shopee</span> e <span className="text-yellow-500">Mercado Livre</span>
+            Venda muito mais na <span className="text-orange-500">Shopee</span> e{' '}
+            <span className="text-yellow-500">Mercado Livre</span>
           </motion.h1>
 
           <motion.p
@@ -118,15 +111,18 @@ export default function Landing({ onLoginClick }: LandingProps) {
             COMECE A VENDER MAIS <ChevronRight className="w-6 h-6" />
           </motion.button>
 
-          {/* ✅ TEXTO/BOTÃO DE TESTE GRÁTIS ABAIXO DO BOTÃO LARANJA */}
-          <div className="mt-6 flex flex-col items-center gap-2">
+          {/* ✅ Texto “Teste grátis” embaixo do botão laranja (clicável) */}
+          <div className="mt-4 text-center">
             <button
-              onClick={goToFreeTrial}
-              className="text-sm text-slate-300 hover:text-white underline underline-offset-4 transition-all"
+              type="button"
+              onClick={goToLoginForFreeTrial}
+              className="text-sm font-semibold text-slate-300 hover:text-white underline underline-offset-4 decoration-slate-600 hover:decoration-slate-300 transition-colors"
             >
               Teste grátis — 3 créditos liberados
             </button>
-            <span className="text-xs text-slate-500">Sem cartão • Sem compromisso</span>
+            <div className="mt-1 text-xs text-slate-500">
+              Sem cartão • Sem compromisso
+            </div>
           </div>
         </div>
       </section>
@@ -168,7 +164,7 @@ export default function Landing({ onLoginClick }: LandingProps) {
         </div>
       </section>
 
-      {/* PROVA SOCIAL (CARROSSEL 8 ITENS — SEM IMAGENS, ESTILO IGUAL AO ATUAL) */}
+      {/* PROVA SOCIAL (CARROSSEL 8 ITENS — SEM IMAGENS) */}
       <section className="py-24 px-4 bg-[#0F172A]">
         <div className="max-w-6xl mx-auto">
           <div className="text-center mb-16">
@@ -308,7 +304,6 @@ function SocialProofCarousel() {
                     <span className="text-4xl font-black text-white tracking-tight">{it.value}</span>
                   </div>
 
-                  {/* ícone de tendência no canto (sem precisar importar) */}
                   <svg
                     className="w-16 h-16 text-emerald-500/10 absolute -bottom-4 -right-4"
                     viewBox="0 0 24 24"
@@ -353,7 +348,6 @@ function SocialProofCarousel() {
         </div>
       </div>
 
-      {/* bolinhas */}
       <div className="flex justify-center gap-2 mt-6">
         {items.map((_, i) => (
           <button
