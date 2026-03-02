@@ -104,7 +104,7 @@ const Header = ({ handleLogout, credits }: { handleLogout: () => void, credits: 
       </div>
       <div className="flex items-center gap-4">
         {credits !== null && (
-          <div className="bg-orange-100 text-orange-700 px-3 py-1.5 rounded-full text-sm font-bold flex items-center gap-1.5 border border-orange-200 shadow-sm">
+          <div className="bg-orange-100 text-orange-700 px-3 py-1.5 rounded-full text-sm font-bold flex items-center gap-1.5 border border-orange-200">
             <Sparkles className="w-4 h-4" />
             {credits} {credits === 1 ? 'Crédito' : 'Créditos'}
           </div>
@@ -180,8 +180,8 @@ const PlansModal = ({ isOpen, onClose }: { isOpen: boolean; onClose: () => void 
               </div>
               <ul className="space-y-3 mb-8">
                 <li className="flex items-center gap-2 text-sm text-orange-600 font-bold"><Check className="w-4 h-4" /> {content.lite.ads}</li>
-                <li className="flex items-center gap-2 text-sm text-slate-600"><Check className="w-4 h-4 text-emerald-500" /> SEO Shopee e Mercado Livre</li>
-                <li className="flex items-center gap-2 text-sm text-slate-600"><Check className="w-4 h-4 text-emerald-500" /> Imagens em alta definição</li>
+                <li className="flex items-center gap-2 text-sm text-slate-600 font-medium"><Check className="w-4 h-4 text-emerald-500" /> SEO Shopee e Mercado Livre</li>
+                <li className="flex items-center gap-2 text-sm text-slate-600 font-medium"><Check className="w-4 h-4 text-emerald-500" /> Imagens em alta definição</li>
               </ul>
               <button onClick={() => handleSubscribe('Vendedor Lite')} className="w-full py-3 rounded-xl bg-slate-900 text-white font-bold hover:bg-slate-800 transition-all shadow-lg">Assinar Agora</button>
             </div>
@@ -197,8 +197,9 @@ const PlansModal = ({ isOpen, onClose }: { isOpen: boolean; onClose: () => void 
                 <li className="flex items-center gap-2 text-sm text-orange-600 font-bold"><Check className="w-4 h-4" /> {content.pro.ads}</li>
                 <li className="flex items-center gap-2 text-sm text-slate-800 font-bold"><Check className="w-4 h-4 text-emerald-500" /> SEO Shopee e Mercado Livre</li>
                 <li className="flex items-center gap-2 text-sm text-slate-800 font-bold"><Check className="w-4 h-4 text-emerald-500" /> Imagens em alta definição</li>
+                <li className="flex items-center gap-2 text-sm text-slate-600"><Check className="w-4 h-4 text-emerald-500" /> Suporte prioritário</li>
               </ul>
-              <button onClick={() => handleSubscribe('Pro')} className="w-full py-3 rounded-xl bg-orange-500 text-white font-bold hover:bg-orange-600 transition-all shadow-lg">Assinar Agora</button>
+              <button onClick={() => handleSubscribe('Pro')} className="w-full py-3 rounded-xl bg-orange-500 text-white font-bold hover:bg-orange-600 transition-all shadow-lg shadow-orange-100">Assinar Agora</button>
             </div>
           </div>
           <button onClick={onClose} className="mt-8 text-sm text-slate-400 hover:text-slate-600 font-bold">Talvez mais tarde</button>
@@ -240,13 +241,53 @@ export default function App() {
     loadCredits();
   }, [session]);
 
-  const handleLogout = async () => { await supabase.auth.signOut(); };
+  useEffect(() => {
+    const checkLastListing = async () => {
+      try {
+        const listing = await get<LastListing>('last_listing');
+        if (listing && (Date.now() - listing.timestamp < 7 * 24 * 60 * 60 * 1000)) {
+          setHasLastListing(true);
+        } else {
+          await del('last_listing');
+        }
+      } catch (e) { console.error(e); }
+    };
+    checkLastListing();
+  }, []);
+
+  // --- NOVA FUNÇÃO DE LOGOUT (Força a tela de Login a aparecer) ---
+  const handleLogout = async () => { 
+    await supabase.auth.signOut(); 
+    setSession(null); 
+  };
+  // ---------------------------------------------------------------
+
+  const loadLastListing = async () => {
+    const listing = await get<LastListing>('last_listing');
+    if (listing) {
+      setFormData(listing.formData);
+      setAdProject(listing.adProject);
+      setGeneratedData(listing.generatedData);
+      setStep('result');
+    }
+  };
+
+  const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      const reader = new FileReader();
+      reader.onloadend = () => { setFormData({ ...formData, image: reader.result as string }); };
+      reader.readAsDataURL(file);
+    }
+  };
 
   const generateAIContent = async () => {
     if (credits === null || credits <= 0) { setShowPlansModal(true); return; }
+
     try {
       setError(null);
       setStep('processing');
+
       const safeGenerateTextJSON = async (prompt: string, schema: any) => {
          const { data } = await supabase.functions.invoke('gerar-anuncio', { body: { action: 'generateText', prompt, schema } });
          let text = data.text || '{}';
@@ -254,33 +295,83 @@ export default function App() {
          let jsonStr = text.substring(start, end + 1).replace(/[\u0000-\u001F]+/g, " ");
          return JSON.parse(jsonStr);
       };
-      
-      const promptsData = await safeGenerateTextJSON(`Create 5 image prompts for: ${formData.productName}`, { type: Type.OBJECT, properties: { imagePrompts: { type: Type.ARRAY, items: { type: Type.STRING } } }, required: ["imagePrompts"] });
-      const base64Data = formData.image!.split(',')[1];
-      const mimeType = formData.image!.match(/data:(.*?);/)?.[1] || 'image/jpeg';
-      
-      setLoadingMessage('Gerando imagens profissionais...');
-      const currentImages = await Promise.all(promptsData.imagePrompts.slice(0, 5).map(async (prompt: string) => {
-        const { data } = await supabase.functions.invoke('gerar-anuncio', { body: { action: 'generateImage', prompt, imageBase64: base64Data, mimeType } });
-        return data.candidates?.[0]?.content?.parts[0]?.inlineData ? `data:image/png;base64,${data.candidates[0].content.parts[0].inlineData.data}` : null;
-      }));
 
-      setLoadingMessage('Otimizando SEO...');
-      let currentTextData;
-      if (formData.marketplace === 'shopee') {
-        currentTextData = await safeGenerateTextJSON(`Especialista SEO Shopee para: ${formData.productName}`, { type: Type.OBJECT, properties: { title: { type: Type.STRING }, description: { type: Type.STRING }, hashtags: { type: Type.ARRAY, items: { type: Type.STRING } }, keywords: { type: Type.ARRAY, items: { type: Type.STRING } } }, required: ["title", "description", "hashtags", "keywords"] });
-      } else {
-        currentTextData = await safeGenerateTextJSON(`Especialista SEO ML para: ${formData.productName}`, { type: Type.OBJECT, properties: { title: { type: Type.STRING }, bullets: { type: Type.ARRAY, items: { type: Type.STRING } }, description: { type: Type.STRING }, tags: { type: Type.ARRAY, items: { type: Type.STRING } } }, required: ["title", "bullets", "description", "tags"] });
+      let isNewProject = (formData.productName !== adProject.productName || formData.image !== adProject.originalImage);
+      let currentImages = isNewProject ? [] : adProject.generatedImages;
+      let currentTextData = formData.marketplace === 'shopee' ? adProject.shopeeText : adProject.mlText;
+
+      if (!currentTextData) {
+        if (formData.marketplace === 'shopee') {
+          setLoadingMessage('Criando SEO para Shopee...');
+          const seoSchema = {
+            type: Type.OBJECT,
+            properties: { title: { type: Type.STRING }, keywords: { type: Type.ARRAY, items: { type: Type.STRING } }, coverSuggestion: { type: Type.STRING }, description: { type: Type.STRING }, hashtags: { type: Type.ARRAY, items: { type: Type.STRING } } },
+            required: ["title", "keywords", "coverSuggestion", "description", "hashtags"]
+          };
+          currentTextData = await safeGenerateTextJSON(`Especialista SEO Shopee para: ${formData.productName}`, seoSchema);
+        } else {
+          setLoadingMessage('Criando SEO para Mercado Livre...');
+          const mlSchema = {
+            type: Type.OBJECT,
+            properties: { title: { type: Type.STRING }, bullets: { type: Type.ARRAY, items: { type: Type.STRING } }, tags: { type: Type.ARRAY, items: { type: Type.STRING } }, description: { type: Type.STRING } },
+            required: ["title", "bullets", "tags", "description"]
+          };
+          currentTextData = await safeGenerateTextJSON(`Especialista SEO ML para: ${formData.productName}`, mlSchema);
+        }
       }
 
-      await supabase.from('anuncios').insert([{ user_id: session.user.id, product_name: formData.productName, marketplace: formData.marketplace, shopee_text: formData.marketplace === 'shopee' ? currentTextData : null, ml_text: formData.marketplace === 'ml' ? currentTextData : null, images: currentImages.filter(img => img !== null) }]);
+      if (!currentImages || currentImages.length === 0) {
+        setLoadingMessage('Gerando imagens profissionais...');
+        const promptsData = await safeGenerateTextJSON(`Create 5 image prompts for: ${formData.productName}`, { type: Type.OBJECT, properties: { imagePrompts: { type: Type.ARRAY, items: { type: Type.STRING } } }, required: ["imagePrompts"] });
+        
+        const base64Data = formData.image!.split(',')[1];
+        const mimeType = formData.image!.match(/data:(.*?);/)?.[1] || 'image/jpeg';
 
-      setGeneratedData({ marketplace: formData.marketplace, images: currentImages, textData: currentTextData });
+        currentImages = await Promise.all(promptsData.imagePrompts.slice(0, 5).map(async (prompt: string) => {
+          const { data } = await supabase.functions.invoke('gerar-anuncio', { body: { action: 'generateImage', prompt, imageBase64: base64Data, mimeType } });
+          return data.candidates?.[0]?.content?.parts[0]?.inlineData ? `data:image/png;base64,${data.candidates[0].content.parts[0].inlineData.data}` : null;
+        }));
+      }
+
+      // --- SALVANDO NO HISTÓRICO DO SUPABASE ---
+      try {
+        await supabase.from('anuncios').insert([{
+          user_id: session.user.id,
+          product_name: formData.productName,
+          marketplace: formData.marketplace,
+          shopee_text: formData.marketplace === 'shopee' ? currentTextData : null,
+          ml_text: formData.marketplace === 'ml' ? currentTextData : null,
+          images: currentImages.filter(img => img !== null)
+        }]);
+      } catch (dbError) { console.error("Erro ao salvar no banco:", dbError); }
+
+      const newAdProject = { ...adProject, productName: formData.productName, originalImage: formData.image, generatedImages: currentImages, shopeeText: formData.marketplace === 'shopee' ? currentTextData : adProject.shopeeText, mlText: formData.marketplace === 'ml' ? currentTextData : adProject.mlText };
+      const newGeneratedData = { marketplace: formData.marketplace, images: currentImages, textData: currentTextData! };
+
+      setAdProject(newAdProject);
+      setGeneratedData(newGeneratedData);
+      
+      const compressedImages = await Promise.all(currentImages.map(async (img) => img ? await compressImageToWebP(img, 0.8) : null));
+      const compressedOriginal = formData.image ? await compressImageToWebP(formData.image, 0.8) : null;
+      await set('last_listing', { timestamp: Date.now(), formData: { ...formData, image: compressedOriginal }, adProject: { ...newAdProject, originalImage: compressedOriginal, generatedImages: compressedImages }, generatedData: { ...newGeneratedData, images: compressedImages } });
+      setHasLastListing(true);
+
       const newCredits = credits - 1;
       await supabase.from("profiles").update({ credits: newCredits }).eq("id", session.user.id);
       setCredits(newCredits);
       setStep('result');
     } catch (err: any) { setError(err.message); setStep('input'); }
+  };
+
+  const resetApp = () => { setStep('input'); setFormData({ productName: '', marketplace: 'shopee', image: null }); setGeneratedData(null); };
+
+  const downloadZip = async () => {
+    if (!generatedData) return;
+    const zip = new JSZip();
+    const data = generatedData.textData as any;
+    zip.file(`SEO.txt`, `TÍTULO: ${data.title}\nDESCRIÇÃO: ${data.description}`);
+    generatedData.images.forEach((img, i) => img && zip.file(`imagem_${i+1}.png`, img.split(',')[1], { base64: true }));
+    saveAs(await zip.generateAsync({ type: 'blob' }), `AnuncioPro_${formData.productName}.zip`);
   };
 
   if (!session) return <Login />;
@@ -294,28 +385,31 @@ export default function App() {
             <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="max-w-4xl mx-auto">
               <div className="text-center mb-12">
                 <h1 className="text-5xl font-black text-slate-900 mb-4 tracking-tight">Crie anúncios que vendem</h1>
-                <p className="text-slate-500 text-lg font-medium">SEO + Imagens otimizadas em segundos.</p>
+                <p className="text-slate-500 text-lg font-medium">SEO + Imagens otimizadas para Marketplaces.</p>
               </div>
               <div className="bg-white rounded-[32px] border border-slate-200 shadow-sm p-10">
                 <form onSubmit={(e) => { e.preventDefault(); generateAIContent(); }} className="space-y-10">
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-10">
                     <div className="space-y-6">
-                      <label className="block text-sm font-bold">Nome do Produto *</label>
-                      <input type="text" required className="w-full p-4 rounded-xl border" value={formData.productName} onChange={e => setFormData({...formData, productName: e.target.value})} />
-                      <label className="block text-sm font-bold">Marketplace</label>
+                      <label className="block text-sm font-bold text-slate-700">Nome do Produto *</label>
+                      <input type="text" required className="w-full p-4 rounded-xl border border-slate-200 outline-none focus:ring-2 focus:ring-orange-500" value={formData.productName} onChange={e => setFormData({...formData, productName: e.target.value})} />
+                      <label className="block text-sm font-bold text-slate-700">Marketplace</label>
                       <div className="flex gap-4">
                         {['shopee', 'ml'].map(m => (
-                          <button key={m} type="button" onClick={() => setFormData({...formData, marketplace: m as Marketplace})} className={`flex-1 p-4 rounded-xl border font-bold ${formData.marketplace === m ? 'bg-orange-500 text-white' : ''}`}>{m === 'shopee' ? 'Shopee' : 'Mercado Livre'}</button>
+                          <button key={m} type="button" onClick={() => setFormData({...formData, marketplace: m as Marketplace})} className={`flex-1 p-4 rounded-xl border font-bold transition-all ${formData.marketplace === m ? 'bg-orange-500 border-orange-500 text-white shadow-lg shadow-orange-100' : 'bg-white text-slate-500 hover:border-slate-300'}`}>
+                            {m === 'shopee' ? 'Shopee' : 'Mercado Livre'}
+                          </button>
                         ))}
                       </div>
                     </div>
-                    <div className="border-2 border-dashed rounded-[32px] p-8 flex flex-col items-center justify-center relative min-h-[280px]" onClick={() => !formData.image && fileInputRef.current?.click()}>
+                    <div className="border-2 border-dashed border-slate-200 rounded-[32px] p-8 flex flex-col items-center justify-center relative min-h-[280px] hover:border-orange-300 transition-colors cursor-pointer" onClick={() => !formData.image && fileInputRef.current?.click()}>
                       <input type="file" ref={fileInputRef} className="hidden" onChange={handleImageUpload} />
-                      {formData.image ? <img src={formData.image} className="h-full object-contain" /> : <div className="text-center font-bold text-slate-400"><UploadCloud className="mx-auto mb-2 w-10 h-10" /> Carregar Foto</div>}
+                      {formData.image ? <img src={formData.image} className="h-full object-contain rounded-xl" /> : <div className="text-center text-slate-400 font-bold leading-tight"><UploadCloud className="mx-auto mb-3 w-10 h-10 text-orange-400" /> Clique ou arraste a foto aqui</div>}
                     </div>
                   </div>
-                  <div className="flex justify-end pt-6 border-t">
-                    <button type="submit" className="bg-orange-500 text-white p-4 px-10 rounded-xl font-black shadow-lg shadow-orange-100 flex items-center gap-2">
+                  <div className="flex justify-end gap-4 pt-6 border-t border-slate-50">
+                    {hasLastListing && <button type="button" onClick={loadLastListing} className="p-4 rounded-xl border border-slate-200 font-bold hover:bg-slate-50 flex items-center gap-2"><History className="w-5 h-5"/> Último</button>}
+                    <button type="submit" className="bg-orange-500 hover:bg-orange-600 text-white p-4 px-10 rounded-xl font-black shadow-lg shadow-orange-100 transition-all flex items-center gap-2">
                       <Sparkles className="w-5 h-5" /> Gerar Anúncio com IA
                     </button>
                   </div>
@@ -326,38 +420,44 @@ export default function App() {
 
           {step === 'processing' && (
             <div className="text-center py-24">
-              <Loader2 className="w-16 h-16 animate-spin mx-auto text-orange-500 mb-6" />
-              <h2 className="text-2xl font-black">{loadingMessage}</h2>
+              <div className="relative w-24 h-24 mx-auto mb-8">
+                <div className="absolute inset-0 border-4 border-slate-100 rounded-full"></div>
+                <div className="absolute inset-0 border-4 border-orange-500 rounded-full border-t-transparent animate-spin"></div>
+              </div>
+              <h2 className="text-2xl font-black text-slate-900 mb-2">{loadingMessage}</h2>
+              <p className="text-slate-400 font-medium">Isso leva cerca de 20 segundos...</p>
             </div>
           )}
 
           {step === 'result' && generatedData && (
             <div className="max-w-6xl mx-auto space-y-10">
-              <div className="flex justify-between items-center">
-                <h2 className="text-3xl font-black">Anúncio Pronto!</h2>
+               <div className="flex flex-col md:flex-row justify-between items-center gap-6">
+                <div>
+                  <h2 className="text-3xl font-black text-slate-900">Anúncio Pronto!</h2>
+                  <p className="text-slate-500 font-medium">SEO e Imagens geradas para {generatedData.marketplace === 'ml' ? 'Mercado Livre' : 'Shopee'}</p>
+                </div>
                 <div className="flex gap-4">
-                  <button onClick={() => setStep('input')} className="p-4 px-8 rounded-xl border font-bold">Novo Produto</button>
-                  <button onClick={() => {}} className="bg-orange-500 text-white p-4 px-8 rounded-xl font-black flex gap-2 shadow-lg shadow-orange-100"><Download /> Baixar ZIP</button>
+                  <button onClick={resetApp} className="p-4 px-8 rounded-xl border border-slate-200 font-bold hover:bg-slate-50">Novo Produto</button>
+                  <button onClick={downloadZip} className="bg-orange-500 text-white p-4 px-8 rounded-xl font-black flex items-center gap-2 shadow-lg shadow-orange-100"><Download className="w-5 h-5" /> Baixar Pacote</button>
                 </div>
               </div>
 
               <div className="grid grid-cols-1 lg:grid-cols-12 gap-10">
-                {/* Coluna de Imagens (Premium Look) */}
                 <div className="lg:col-span-5 bg-white p-8 rounded-[32px] border border-slate-200 space-y-6 shadow-sm">
-                  <h3 className="font-black text-slate-900 border-b pb-4">Imagens Geradas</h3>
-                  <div className="aspect-square bg-slate-50 rounded-2xl overflow-hidden border">
+                  <h3 className="font-black text-slate-900 border-b border-slate-50 pb-4 flex items-center gap-2"><ImageIcon className="w-5 h-5 text-orange-500" /> Imagens Geradas</h3>
+                  <div className="aspect-square bg-slate-50 rounded-2xl overflow-hidden border border-slate-100">
                     <img src={generatedData.images[0]!} className="w-full h-full object-cover" />
                   </div>
                   <div className="grid grid-cols-2 gap-4">
-                    {generatedData.images.slice(1, 5).map((img, i) => img && <img key={i} src={img} className="rounded-xl border shadow-sm" />)}
+                    {generatedData.images.slice(1).map((img, i) => img && <img key={i} src={img} className="rounded-xl border border-slate-100 shadow-sm" />)}
                   </div>
                 </div>
-                {/* Coluna de SEO */}
                 <div className="lg:col-span-7 bg-white p-8 rounded-[32px] border border-slate-200 shadow-sm">
-                  <h3 className="font-black text-slate-900 border-b pb-4 mb-8">SEO Especialista</h3>
-                  <pre className="text-sm whitespace-pre-wrap font-sans text-slate-600 leading-relaxed">
-                    {JSON.stringify(generatedData.textData, null, 2)}
-                  </pre>
+                  {generatedData.marketplace === 'shopee' ? (
+                    <ShopeeResultCard data={generatedData.textData as ShopeeData} />
+                  ) : (
+                    <MLResultCard data={generatedData.textData as MLData} />
+                  )}
                 </div>
               </div>
             </div>
@@ -368,3 +468,52 @@ export default function App() {
     </div>
   );
 }
+
+// --- Cards Bonitos ---
+const ShopeeResultCard = ({ data }: { data: ShopeeData }) => {
+  const [copied, setCopied] = useState(false);
+  const copyToClipboard = () => {
+    const text = `TÍTULO:\n${data.title}\n\nDESCRIÇÃO:\n${data.description}\n\nHASHTAGS:\n${data.hashtags?.join(' ')}\n\nPALAVRAS-CHAVE:\n${data.keywords?.join(', ')}`;
+    navigator.clipboard.writeText(text);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
+  };
+
+  return (
+    <div className="space-y-8">
+      <div className="flex justify-between items-center border-b border-slate-100 pb-4">
+         <h3 className="font-black text-slate-900 flex items-center gap-2"><ShoppingBag className="w-5 h-5 text-orange-500" /> SEO Especialista - Shopee</h3>
+         <button onClick={copyToClipboard} className="flex items-center gap-1.5 text-sm font-bold text-slate-600 hover:text-orange-600 transition-colors bg-white px-4 py-2 rounded-lg border border-slate-200 shadow-sm">
+           {copied ? <Check className="w-4 h-4 text-emerald-500" /> : <Copy className="w-4 h-4" />} {copied ? 'Copiado!' : 'Copiar Tudo'}
+         </button>
+      </div>
+      <div><span className="text-[10px] font-black text-orange-500 uppercase tracking-widest mb-2 block">Título Otimizado</span><div className="bg-slate-50 p-4 rounded-xl border font-bold text-slate-900">{data.title}</div></div>
+      <div><span className="text-[10px] font-black text-orange-500 uppercase tracking-widest mb-2 block">Descrição</span><div className="bg-slate-50 p-4 rounded-xl border text-slate-600 whitespace-pre-wrap text-sm leading-relaxed">{data.description}</div></div>
+      <div><span className="text-[10px] font-black text-orange-500 uppercase tracking-widest mb-2 block">Hashtags</span><div className="flex flex-wrap gap-2">{data.hashtags?.map((h, i) => <span key={i} className="text-orange-600 font-bold text-sm">#{h.replace('#','')}</span>)}</div></div>
+    </div>
+  );
+};
+
+const MLResultCard = ({ data }: { data: MLData }) => {
+  const [copied, setCopied] = useState(false);
+  const copyToClipboard = () => {
+    const text = `TÍTULO:\n${data.title}\n\nBULLETS:\n${data.bullets?.map(b => `- ${b}`).join('\n')}\n\nDESCRIÇÃO:\n${data.description}\n\nPALAVRAS-CHAVE:\n${data.tags?.join(', ')}`;
+    navigator.clipboard.writeText(text);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
+  };
+
+  return (
+    <div className="space-y-8">
+      <div className="flex justify-between items-center border-b border-slate-100 pb-4">
+         <h3 className="font-black text-slate-900 flex items-center gap-2"><Store className="w-5 h-5 text-yellow-500" /> SEO Platinum - Mercado Livre</h3>
+         <button onClick={copyToClipboard} className="flex items-center gap-1.5 text-sm font-bold text-slate-600 hover:text-yellow-600 transition-colors bg-white px-4 py-2 rounded-lg border border-slate-200 shadow-sm">
+           {copied ? <Check className="w-4 h-4 text-emerald-500" /> : <Copy className="w-4 h-4" />} {copied ? 'Copiado!' : 'Copiar Tudo'}
+         </button>
+      </div>
+      <div><span className="text-[10px] font-black text-orange-500 uppercase tracking-widest mb-2 block">Título Otimizado</span><div className="bg-slate-50 p-4 rounded-xl border font-bold text-slate-900">{data.title}</div></div>
+      <div><span className="text-[10px] font-black text-orange-500 uppercase tracking-widest mb-2 block">Bullet Points</span><ul className="space-y-2">{data.bullets?.map((b, i) => <li key={i} className="text-sm text-slate-700 bg-orange-50/50 p-3 rounded-lg border border-orange-100 flex items-start gap-2 font-medium"> <Check className="w-4 h-4 text-orange-500 shrink-0 mt-0.5" /> {b}</li>)}</ul></div>
+      <div><span className="text-[10px] font-black text-orange-500 uppercase tracking-widest mb-2 block">Descrição Persuasiva</span><div className="bg-slate-50 p-4 rounded-xl border text-slate-600 text-sm whitespace-pre-wrap leading-relaxed">{data.description}</div></div>
+    </div>
+  );
+};

@@ -1,145 +1,110 @@
 import React, { useState } from 'react';
 import { supabase } from "../lib/supabaseClient";
-import { Package, Mail, Lock, Loader2, AlertCircle } from 'lucide-react';
-import { motion, AnimatePresence } from 'motion/react';
+import { Package, Mail, Lock, Loader2 } from 'lucide-react';
+import { motion } from 'motion/react';
 
 export default function Login() {
   const [loading, setLoading] = useState(false);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const [msg, setMsg] = useState('');
   const [isRegistering, setIsRegistering] = useState(false);
 
   const handleAuth = async (e: React.FormEvent) => {
     e.preventDefault();
-    setMsg('');
-    
-    if (!email || !password) {
-      setMsg("⚠️ Por favor, preencha email e senha.");
-      return;
-    }
-
     setLoading(true);
-    
     if (isRegistering) {
       const { error } = await supabase.auth.signUp({ email, password });
-      if (error) setMsg(`❌ ${error.message}`);
-      else setMsg("Conta criada! Verifique seu email ✅");
+      if (error) alert(error.message);
+      else alert("Verifique seu e-mail para confirmar o cadastro!");
     } else {
       const { error } = await supabase.auth.signInWithPassword({ email, password });
-      if (error) setMsg("❌ E-mail ou senha incorretos.");
+      if (error) alert("E-mail ou senha incorretos.");
     }
     setLoading(false);
   };
 
   return (
-    <div className="min-h-screen bg-[#F7F8FA] flex flex-col items-center justify-center p-4 font-sans text-slate-900">
-      
-      {/* Logo do Sistema */}
-      <motion.div 
-        initial={{ opacity: 0, y: -20 }}
-        animate={{ opacity: 1, y: 0 }}
-        className="flex items-center gap-2 mb-8"
-      >
-        <div className="bg-orange-500 p-2 rounded-lg shadow-lg shadow-orange-200">
+    <div className="min-h-screen bg-[#0F172A] flex flex-col items-center justify-center p-4">
+      {/* Logo acima do Card */}
+      <div className="flex items-center gap-3 mb-8">
+        <div className="bg-orange-500 p-2.5 rounded-xl shadow-lg shadow-orange-500/20">
           <Package className="w-8 h-8 text-white" />
         </div>
-        <span className="text-2xl font-bold text-slate-900 tracking-tight">
+        <span className="text-3xl font-black text-white tracking-tight">
           Anúncio<span className="text-orange-500">Pro</span>
         </span>
-      </motion.div>
+      </div>
 
       <motion.div 
-        initial={{ opacity: 0, scale: 0.95 }}
-        animate={{ opacity: 1, scale: 1 }}
-        className="bg-white w-full max-w-[400px] rounded-[24px] shadow-[0_8px_30px_rgb(0,0,0,0.04)] border border-slate-100 p-8 sm:p-10"
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        className="bg-white w-full max-w-[440px] rounded-[32px] shadow-2xl p-10 sm:p-12"
       >
-        <div className="mb-8">
-          <h1 className="text-2xl font-[800] text-slate-900 mb-2 tracking-tight">
-            {isRegistering ? 'Crie sua conta' : 'Seja bem vindo 👋'}
+        <div className="mb-10 text-center sm:text-left">
+          <h1 className="text-3xl font-black text-slate-900 mb-2">
+            {isRegistering ? 'Crie sua conta' : 'Bem-vindo de volta 👋'}
           </h1>
-          <p className="text-slate-500 text-sm font-medium">
-            {isRegistering ? 'Comece a criar anúncios profissionais hoje.' : 'Acesso ao painel de controle.'}
+          <p className="text-slate-500 font-medium">
+            {isRegistering ? 'Comece a vender mais hoje mesmo.' : 'Acesse seu painel de controle.'}
           </p>
         </div>
 
-        {msg && (
-          <div className={`mb-6 p-4 rounded-xl text-sm font-medium flex items-start gap-3 ${msg.includes('❌') || msg.includes('⚠️') ? 'bg-red-50 text-red-700 border border-red-100' : 'bg-emerald-50 text-emerald-700 border border-emerald-100'}`}>
-            <AlertCircle className="w-5 h-5 shrink-0" />
-            <p>{msg}</p>
-          </div>
-        )}
-
-        <form onSubmit={handleAuth} className="space-y-5">
-          <div>
-            <label className="text-sm font-bold text-slate-700 mb-1.5 block">Usuário ou E-mail</label>
+        <form onSubmit={handleAuth} className="space-y-6">
+          <div className="space-y-2">
+            <label className="text-sm font-bold text-slate-700 ml-1">E-mail</label>
             <div className="relative">
-              <Mail className="w-5 h-5 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
-              <input
-                type="email"
-                required
-                className="w-full pl-10 pr-4 h-[52px] rounded-xl border border-slate-200 focus:ring-2 focus:ring-orange-500/20 focus:border-orange-500 outline-none transition-all text-slate-900 font-medium placeholder:text-slate-300"
-                placeholder="seuemail@exemplo.com"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
+              <Mail className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400" />
+              <input 
+                type="email" 
+                required 
+                placeholder="seu@email.com" 
+                className="w-full pl-12 pr-4 py-4 rounded-2xl border border-slate-200 focus:ring-4 focus:ring-orange-500/10 focus:border-orange-500 outline-none transition-all font-medium"
+                value={email} 
+                onChange={e => setEmail(e.target.value)} 
               />
             </div>
           </div>
 
-          <div>
-            <div className="flex justify-between items-center mb-1.5">
-              <label className="text-sm font-bold text-slate-700">Senha</label>
-              {!isRegistering && (
-                <button type="button" className="text-xs font-bold text-orange-600 hover:text-orange-700 transition-colors">
-                  Esqueceu a senha?
-                </button>
-              )}
-            </div>
+          <div className="space-y-2">
+            <label className="text-sm font-bold text-slate-700 ml-1">Senha</label>
             <div className="relative">
-              <Lock className="w-5 h-5 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
-              <input
-                type="password"
-                required
-                className="w-full pl-10 pr-4 h-[52px] rounded-xl border border-slate-200 focus:ring-2 focus:ring-orange-500/20 focus:border-orange-500 outline-none transition-all text-slate-900 font-medium placeholder:text-slate-300"
-                placeholder="••••••"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
+              <Lock className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400" />
+              <input 
+                type="password" 
+                required 
+                placeholder="••••••••" 
+                className="w-full pl-12 pr-4 py-4 rounded-2xl border border-slate-200 focus:ring-4 focus:ring-orange-500/10 focus:border-orange-500 outline-none transition-all font-medium"
+                value={password} 
+                onChange={e => setPassword(e.target.value)} 
               />
             </div>
           </div>
 
-          <button
-            type="submit"
+          <button 
+            type="submit" 
             disabled={loading}
-            className="w-full h-[54px] bg-orange-500 hover:bg-orange-600 text-white font-black text-base rounded-xl shadow-lg shadow-orange-100 transition-all flex items-center justify-center gap-2 active:scale-[0.98] disabled:opacity-70 disabled:cursor-not-allowed"
+            className="w-full py-4 bg-orange-500 hover:bg-orange-600 text-white font-black rounded-2xl shadow-lg shadow-orange-200 transition-all flex items-center justify-center gap-2 active:scale-95 disabled:opacity-70"
           >
             {loading ? (
               <Loader2 className="w-6 h-6 animate-spin" />
             ) : (
-              isRegistering ? 'Criar minha conta' : 'Acessar Sistema'
+              isRegistering ? 'Criar minha conta gratuita' : 'Acessar Sistema'
             )}
           </button>
         </form>
 
-        <div className="mt-8 pt-6 border-t border-slate-50 text-center">
-          <p className="text-sm text-slate-500 font-medium">
-            {isRegistering ? 'Já possui uma conta?' : 'Não tem uma conta?'}
-            <button
-              type="button"
-              onClick={() => {
-                setIsRegistering(!isRegistering);
-                setMsg('');
-              }}
-              className="ml-1.5 font-black text-orange-600 hover:text-orange-700 transition-colors"
-            >
-              {isRegistering ? 'Fazer login' : 'Criar conta'}
-            </button>
-          </p>
+        <div className="mt-8 pt-8 border-t border-slate-50 text-center">
+          <button 
+            onClick={() => setIsRegistering(!isRegistering)} 
+            className="text-sm font-bold text-orange-600 hover:text-orange-700 transition-colors"
+          >
+            {isRegistering ? 'Já tem uma conta? Faça login' : 'Não tem conta? Comece o teste grátis'}
+          </button>
         </div>
       </motion.div>
       
-      <p className="mt-8 text-[10px] text-slate-400 font-bold uppercase tracking-[0.2em]">
-        AnúncioPro © 2026
+      <p className="mt-8 text-slate-500 text-xs font-medium">
+        © 2026 AnúncioPro - Tecnologia para Marketplaces
       </p>
     </div>
   );
