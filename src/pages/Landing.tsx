@@ -1,9 +1,8 @@
-import React, { useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { motion } from 'motion/react';
-import { 
-  Package, Sparkles, Clock, 
-  CheckCircle2, XCircle, ChevronRight, ShoppingBag, Store,
-  Lock, TrendingUp, MessageCircle
+import {
+  Package, Sparkles,
+  CheckCircle2, XCircle, ChevronRight,
 } from 'lucide-react';
 
 interface LandingProps {
@@ -42,7 +41,7 @@ export default function Landing({ onLoginClick }: LandingProps) {
 
   return (
     <div className="min-h-screen bg-[#0F172A] font-sans text-slate-50 selection:bg-orange-500 selection:text-white overflow-x-hidden">
-      
+
       {/* HEADER */}
       <header className="fixed top-0 left-0 right-0 z-50 bg-[#0F172A]/90 backdrop-blur-md border-b border-slate-800">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-20 flex items-center justify-between">
@@ -50,9 +49,11 @@ export default function Landing({ onLoginClick }: LandingProps) {
             <div className="bg-orange-500 p-2.5 rounded-xl shadow-lg shadow-orange-500/20">
               <Package className="w-6 h-6 text-white" />
             </div>
-            <span className="text-2xl font-black text-white tracking-tight">Anúncio<span className="text-orange-500">Pro</span></span>
+            <span className="text-2xl font-black text-white tracking-tight">
+              Anúncio<span className="text-orange-500">Pro</span>
+            </span>
           </div>
-          <button 
+          <button
             onClick={onLoginClick}
             className="text-sm font-bold text-slate-300 hover:text-white transition-colors border border-slate-700 hover:border-slate-500 px-6 py-2.5 rounded-full"
           >
@@ -74,7 +75,7 @@ export default function Landing({ onLoginClick }: LandingProps) {
           <motion.p initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2 }} className="text-lg md:text-xl text-slate-400 mb-10 max-w-2xl mx-auto font-medium leading-relaxed">
             Nossa Inteligência Artificial cria o SEO perfeito e transforma fotos amadoras em imagens de estúdio em apenas 20 segundos.
           </motion.p>
-          <motion.button 
+          <motion.button
             initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.3 }}
             onClick={scrollToPlans}
             className="bg-orange-500 hover:bg-orange-600 text-white px-10 py-5 rounded-2xl font-black text-lg shadow-2xl shadow-orange-500/30 transition-all hover:scale-105 flex items-center gap-3 mx-auto"
@@ -121,90 +122,15 @@ export default function Landing({ onLoginClick }: LandingProps) {
         </div>
       </section>
 
-      {/* PROVA SOCIAL (RESULTADOS) */}
+      {/* PROVA SOCIAL (CARROSSEL 8 ITENS) */}
       <section className="py-24 px-4 bg-[#0F172A]">
         <div className="max-w-6xl mx-auto">
           <div className="text-center mb-16">
             <h2 className="text-3xl md:text-5xl font-black mb-4">Resultados reais de quem já está vendendo</h2>
-            <p className="text-slate-400 text-lg">Você pode estar aqui com a gente!</p>
+            <p className="text-slate-400 text-lg">Exemplos e provas de usuários do AnúncioPro (sem datas).</p>
           </div>
 
-          <div className="grid md:grid-cols-3 gap-6">
-            {/* Card 1 */}
-            <div className="bg-slate-800/30 p-8 rounded-3xl border border-slate-700 flex flex-col hover:border-orange-500/50 transition-all hover:-translate-y-2 group">
-              <div className="bg-slate-900 rounded-2xl p-6 mb-8 border border-slate-800 relative overflow-hidden flex-1">
-                 <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-orange-500 to-yellow-500"></div>
-                 <p className="text-xs text-slate-400 font-bold mb-2 uppercase tracking-wider">Vendas de hoje ao vivo</p>
-                 <div className="flex items-start gap-1">
-                   <span className="text-emerald-400 font-bold mt-1">R$</span>
-                   <span className="text-4xl font-black text-white tracking-tight">42.565,80</span>
-                 </div>
-                 <TrendingUp className="w-16 h-16 text-emerald-500/10 absolute -bottom-4 -right-4 group-hover:scale-110 transition-transform" />
-              </div>
-              <div className="text-center mb-6">
-                <div className="flex items-center justify-center gap-2 mb-4 text-orange-500">
-                   <Lock className="w-4 h-4" />
-                   <span className="text-sm font-black uppercase tracking-wider">Vendas Confirmadas</span>
-                </div>
-                <div className="flex justify-center mb-4">
-                  <div className="bg-emerald-500/20 p-3 rounded-full"><MessageCircle className="w-6 h-6 text-emerald-400" /></div>
-                </div>
-                <p className="text-slate-300 italic text-sm leading-relaxed">
-                  "O AnúncioPro fez minhas vendas dispararem na Shopee. As imagens geradas chamam muita atenção e o SEO coloca meu produto na primeira página!"
-                </p>
-              </div>
-            </div>
-
-            {/* Card 2 */}
-            <div className="bg-slate-800/30 p-8 rounded-3xl border border-slate-700 flex flex-col hover:border-orange-500/50 transition-all hover:-translate-y-2 group">
-              <div className="bg-slate-900 rounded-2xl p-6 mb-8 border border-slate-800 relative overflow-hidden flex-1">
-                 <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-orange-500 to-yellow-500"></div>
-                 <p className="text-xs text-slate-400 font-bold mb-2 uppercase tracking-wider">Vendas de hoje ao vivo</p>
-                 <div className="flex items-start gap-1">
-                   <span className="text-emerald-400 font-bold mt-1">R$</span>
-                   <span className="text-4xl font-black text-white tracking-tight">8.831,90</span>
-                 </div>
-                 <TrendingUp className="w-16 h-16 text-emerald-500/10 absolute -bottom-4 -right-4 group-hover:scale-110 transition-transform" />
-              </div>
-              <div className="text-center mb-6">
-                <div className="flex items-center justify-center gap-2 mb-4 text-orange-500">
-                   <Lock className="w-4 h-4" />
-                   <span className="text-sm font-black uppercase tracking-wider">Vendas Confirmadas</span>
-                </div>
-                <div className="flex justify-center mb-4">
-                  <div className="bg-emerald-500/20 p-3 rounded-full"><MessageCircle className="w-6 h-6 text-emerald-400" /></div>
-                </div>
-                <p className="text-slate-300 italic text-sm leading-relaxed">
-                  "Começando do zero com a automação do AnúncioPro. A primeira semana já trouxe resultados que eu não tive nos últimos 3 meses tentando fazer sozinho."
-                </p>
-              </div>
-            </div>
-
-            {/* Card 3 */}
-            <div className="bg-slate-800/30 p-8 rounded-3xl border border-slate-700 flex flex-col hover:border-orange-500/50 transition-all hover:-translate-y-2 group">
-              <div className="bg-slate-900 rounded-2xl p-6 mb-8 border border-slate-800 relative overflow-hidden flex-1">
-                 <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-orange-500 to-yellow-500"></div>
-                 <p className="text-xs text-slate-400 font-bold mb-2 uppercase tracking-wider">Vendas de hoje ao vivo</p>
-                 <div className="flex items-start gap-1">
-                   <span className="text-emerald-400 font-bold mt-1">R$</span>
-                   <span className="text-4xl font-black text-white tracking-tight">153.887,62</span>
-                 </div>
-                 <TrendingUp className="w-16 h-16 text-emerald-500/10 absolute -bottom-4 -right-4 group-hover:scale-110 transition-transform" />
-              </div>
-              <div className="text-center mb-6">
-                <div className="flex items-center justify-center gap-2 mb-4 text-orange-500">
-                   <Lock className="w-4 h-4" />
-                   <span className="text-sm font-black uppercase tracking-wider">Vendas Confirmadas</span>
-                </div>
-                <div className="flex justify-center mb-4">
-                  <div className="bg-emerald-500/20 p-3 rounded-full"><MessageCircle className="w-6 h-6 text-emerald-400" /></div>
-                </div>
-                <p className="text-slate-300 italic text-sm leading-relaxed">
-                  "Incrível como hoje tô fazendo vendas absurdas através do AnúncioPro. Escala real sem precisar de equipe grande. A IA faz o trabalho de 5 pessoas."
-                </p>
-              </div>
-            </div>
-          </div>
+          <SocialProofCarousel />
         </div>
       </section>
 
@@ -232,7 +158,8 @@ export default function Landing({ onLoginClick }: LandingProps) {
             <div className="bg-[#1E293B] p-10 rounded-[32px] border border-slate-700 flex flex-col hover:border-slate-500 transition-colors">
               <span className="text-orange-500 font-bold tracking-wider text-sm mb-4 uppercase">Vendedor Lite</span>
               <div className="flex items-baseline gap-1 mb-8">
-                <span className="text-5xl font-black text-white">R$ {content.lite.price}</span><span className="text-slate-400 font-medium">/{billingCycle === 'monthly' ? 'mês' : 'ano'}</span>
+                <span className="text-5xl font-black text-white">R$ {content.lite.price}</span>
+                <span className="text-slate-400 font-medium">/{billingCycle === 'monthly' ? 'mês' : 'ano'}</span>
               </div>
               <ul className="space-y-5 mb-10 flex-1">
                 <li className="flex items-center gap-3 text-slate-300 font-medium"><CheckCircle2 className="w-5 h-5 text-emerald-500 shrink-0" /> {content.lite.ads}</li>
@@ -246,10 +173,15 @@ export default function Landing({ onLoginClick }: LandingProps) {
 
             {/* Pro */}
             <div className="bg-gradient-to-b from-orange-600 to-orange-500 p-10 rounded-[32px] shadow-2xl shadow-orange-500/20 flex flex-col relative transform md:-translate-y-4 hover:scale-[1.02] transition-transform cursor-pointer">
-              <div className="absolute -top-4 inset-x-0 flex justify-center"><span className="bg-slate-900 text-white text-xs font-black px-4 py-1.5 rounded-full uppercase tracking-wider border border-slate-700">Mais Escolhido</span></div>
+              <div className="absolute -top-4 inset-x-0 flex justify-center">
+                <span className="bg-slate-900 text-white text-xs font-black px-4 py-1.5 rounded-full uppercase tracking-wider border border-slate-700">
+                  Mais Escolhido
+                </span>
+              </div>
               <span className="text-orange-100 font-bold tracking-wider text-sm mb-4 uppercase">Plano Pro (Agência)</span>
               <div className="flex items-baseline gap-1 mb-8">
-                <span className="text-5xl font-black text-white">R$ {content.pro.price}</span><span className="text-orange-200 font-medium">/{billingCycle === 'monthly' ? 'mês' : 'ano'}</span>
+                <span className="text-5xl font-black text-white">R$ {content.pro.price}</span>
+                <span className="text-orange-200 font-medium">/{billingCycle === 'monthly' ? 'mês' : 'ano'}</span>
               </div>
               <ul className="space-y-5 mb-10 flex-1">
                 <li className="flex items-center gap-3 text-white font-bold"><CheckCircle2 className="w-5 h-5 text-white shrink-0" /> {content.pro.ads}</li>
@@ -269,6 +201,99 @@ export default function Landing({ onLoginClick }: LandingProps) {
       <footer className="py-10 border-t border-slate-800 text-center text-slate-500 text-sm">
         <p>© 2026 AnúncioPro. Todos os direitos reservados.</p>
       </footer>
+    </div>
+  );
+}
+
+/**
+ * Carrossel automático (8 itens), deslizando da direita -> esquerda.
+ * Requisitos:
+ * - Coloque imagens em /public/provas/proof-1.png ... proof-8.png
+ */
+function SocialProofCarousel() {
+  const items = useMemo(() => {
+    const values = ["42.565,80", "8.831,90", "153.887,62", "21.044,10", "65.210,33", "12.904,77", "98.430,12", "7.115,50"];
+    const quotes = [
+      "As imagens chamam muita atenção e o SEO melhora o alcance.",
+      "Primeira semana já trouxe resultado melhor que meses sozinho.",
+      "Escala real sem precisar de equipe grande.",
+      "O anúncio ficou mais profissional e aumentou a conversão.",
+      "Melhorou o CTR e minhas visitas subiram.",
+      "Ganho de tempo absurdo: anúncio pronto em minutos.",
+      "O produto começou a aparecer melhor nas buscas.",
+      "Subi anúncios mais rápidos e com mais qualidade.",
+    ];
+
+    return Array.from({ length: 8 }).map((_, i) => ({
+      id: i + 1,
+      image: `/provas/proof-${i + 1}.png`,
+      title: "Resultados de usuários do AnúncioPro",
+      value: values[i],
+      quote: quotes[i],
+    }));
+  }, []);
+
+  const [index, setIndex] = useState(0);
+
+  useEffect(() => {
+    const t = setInterval(() => {
+      setIndex((prev) => (prev + 1) % items.length);
+    }, 3500);
+    return () => clearInterval(t);
+  }, [items.length]);
+
+  return (
+    <div className="relative">
+      <div className="overflow-hidden">
+        <div
+          className="flex transition-transform duration-700 ease-in-out"
+          style={{ transform: `translateX(-${index * 100}%)` }}
+        >
+          {items.map((it) => (
+            <div key={it.id} className="w-full shrink-0 px-2">
+              <div className="bg-slate-800/30 p-6 md:p-8 rounded-3xl border border-slate-700 hover:border-orange-500/50 transition-all">
+                <div className="bg-slate-900 rounded-2xl p-4 md:p-6 mb-6 border border-slate-800 relative overflow-hidden">
+                  <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-orange-500 to-yellow-500"></div>
+
+                  <p className="text-xs text-slate-400 font-bold mb-2 uppercase tracking-wider">
+                    {it.title}
+                  </p>
+
+                  <div className="flex items-start gap-1 mb-4">
+                    <span className="text-emerald-400 font-bold mt-1">R$</span>
+                    <span className="text-4xl md:text-5xl font-black text-white tracking-tight">{it.value}</span>
+                  </div>
+
+                  <div className="rounded-xl overflow-hidden border border-slate-800">
+                    <img
+                      src={it.image}
+                      alt={`Prova ${it.id}`}
+                      className="w-full h-[220px] md:h-[340px] object-cover"
+                      loading="lazy"
+                    />
+                  </div>
+                </div>
+
+                <p className="text-slate-300 italic text-sm md:text-base leading-relaxed text-center">
+                  “{it.quote}”
+                </p>
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      {/* bolinhas */}
+      <div className="flex justify-center gap-2 mt-6">
+        {items.map((_, i) => (
+          <button
+            key={i}
+            onClick={() => setIndex(i)}
+            className={`h-2.5 rounded-full transition-all ${i === index ? "w-8 bg-orange-500" : "w-2.5 bg-slate-600 hover:bg-slate-500"}`}
+            aria-label={`Ir para item ${i + 1}`}
+          />
+        ))}
+      </div>
     </div>
   );
 }
