@@ -22,6 +22,7 @@ import {
   History,
   LogOut
 } from 'lucide-react';
+
 // Adicione este bloco aqui para substituir o Type do Google:
 enum Type {
   STRING = "STRING",
@@ -129,11 +130,89 @@ const Header = ({ handleLogout, credits }: { handleLogout: () => void, credits: 
   </header>
 );
 
+// Componente do Modal de Planos
+const PlansModal = ({ isOpen, onClose }: { isOpen: boolean; onClose: () => void }) => {
+  if (!isOpen) return null;
+
+  const handleSubscribe = (plano: string) => {
+    const msg = encodeURIComponent(`Olá! Gostaria de assinar o plano ${plano} do AnúncioPro.`);
+    // Substitua pelo seu número real abaixo
+    window.open(`https://wa.me/5511999999999?text=${msg}`, '_blank');
+  };
+
+  return (
+    <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm">
+      <motion.div 
+        initial={{ opacity: 0, scale: 0.9, y: 20 }}
+        animate={{ opacity: 1, scale: 1, y: 0 }}
+        className="bg-white rounded-[24px] shadow-2xl max-w-4xl w-full overflow-hidden border border-slate-200"
+      >
+        <div className="p-8 sm:p-12 text-center">
+          <div className="bg-orange-100 text-orange-600 w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-6">
+            <Sparkles className="w-8 h-8" />
+          </div>
+          <h2 className="text-3xl font-[800] text-slate-900 mb-2">Você atingiu o limite de testes gratuitos</h2>
+          <p className="text-slate-500 mb-10">Escolha o plano ideal para escalar suas vendas nos marketplaces.</p>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 text-left">
+            {/* Plano Vendedor Lite */}
+            <div className="border-2 border-slate-100 rounded-[20px] p-6 hover:border-orange-200 transition-all group">
+              <span className="text-xs font-bold text-orange-500 uppercase tracking-wider">Vendedor Lite</span>
+              <div className="flex items-baseline gap-1 mt-2 mb-4">
+                <span className="text-4xl font-black text-slate-900">R$ 49,90</span>
+                <span className="text-slate-400 font-medium">/mês</span>
+              </div>
+              <ul className="space-y-3 mb-8">
+                <li className="flex items-center gap-2 text-sm text-slate-600"><Check className="w-4 h-4 text-emerald-500" /> 15 anúncios profissionais</li>
+                <li className="flex items-center gap-2 text-sm text-slate-600"><Check className="w-4 h-4 text-emerald-500" /> SEO Shopee e Mercado Livre</li>
+                <li className="flex items-center gap-2 text-sm text-slate-600"><Check className="w-4 h-4 text-emerald-500" /> Imagens em alta definição com IA</li>
+              </ul>
+              <button 
+                onClick={() => handleSubscribe('Vendedor Lite')}
+                className="w-full py-3 rounded-xl bg-slate-900 text-white font-bold hover:bg-slate-800 transition-all shadow-lg"
+              >
+                Assinar Agora
+              </button>
+            </div>
+
+            {/* Plano Pro */}
+            <div className="border-2 border-orange-500 rounded-[20px] p-6 bg-orange-50/30 relative">
+              <div className="absolute -top-3 right-6 bg-orange-500 text-white text-[10px] font-bold px-3 py-1 rounded-full uppercase">Mais Vendido</div>
+              <span className="text-xs font-bold text-orange-500 uppercase tracking-wider">Plano Pro</span>
+              <div className="flex items-baseline gap-1 mt-2 mb-4">
+                <span className="text-4xl font-black text-slate-900">R$ 97,00</span>
+                <span className="text-slate-400 font-medium">/mês</span>
+              </div>
+              <ul className="space-y-3 mb-8">
+                <li className="flex items-center gap-2 text-sm text-slate-700 font-semibold"><Check className="w-4 h-4 text-emerald-500" /> 60 anúncios profissionais</li>
+                <li className="flex items-center gap-2 text-sm text-slate-600"><Check className="w-4 h-4 text-emerald-500" /> SEO Premium com IA</li>
+                <li className="flex items-center gap-2 text-sm text-slate-600"><Check className="w-4 h-4 text-emerald-500" /> Suporte prioritário</li>
+              </ul>
+              <button 
+                onClick={() => handleSubscribe('Pro')}
+                className="w-full py-3 rounded-xl bg-orange-500 text-white font-bold hover:bg-orange-600 transition-all shadow-lg shadow-orange-200"
+              >
+                Assinar Agora
+              </button>
+            </div>
+          </div>
+
+          <button onClick={onClose} className="mt-8 text-sm text-slate-400 hover:text-slate-600 font-medium transition-colors">
+            Talvez mais tarde
+          </button>
+        </div>
+      </motion.div>
+    </div>
+  );
+};
+
 export default function App() { 
   // --- 1. HOOKS E ESTADOS ---
   const [session, setSession] = useState<any>(null); 
   const [isInitializing, setIsInitializing] = useState(true); 
   const [credits, setCredits] = useState<number | null>(null);
+  const [showPlansModal, setShowPlansModal] = useState(false); // Novo estado para o Modal
+
   const [step, setStep] = useState<'input' | 'processing' | 'result'>('input');
   const [formData, setFormData] = useState<FormData>({ productName: '', marketplace: 'shopee', image: null });
   const [adProject, setAdProject] = useState<AdProject>({ productName: '', originalImage: null, generatedImages: [], shopeeText: null, mlText: null });
@@ -239,9 +318,6 @@ export default function App() {
     }
   };
 
-  // ---------------------------------------------------------
-  // NOVA FUNÇÃO: Chama a Edge Function do Supabase
-  // ---------------------------------------------------------
   const callSupabaseFunction = async (bodyData: any) => {
     const { data, error } = await supabase.functions.invoke('gerar-anuncio', {
       body: bodyData
@@ -256,8 +332,9 @@ export default function App() {
   }
 
   const generateAIContent = async () => {
+    // ATUALIZADO: Abre o modal se não tiver créditos
     if (credits === null || credits <= 0) {
-      setError("⚠️ Você não tem créditos suficientes para gerar um novo anúncio. Assine um plano para continuar.");
+      setShowPlansModal(true);
       return;
     }
 
@@ -265,7 +342,6 @@ export default function App() {
       setError(null);
       setStep('processing');
 
-      // Helper function para gerar textos com segurança chamando a Edge Function
       const safeGenerateTextJSON = async (prompt: string, schema: any) => {
          const data = await callSupabaseFunction({
             action: 'generateText',
@@ -292,7 +368,6 @@ export default function App() {
       let currentMlText = isNewProject ? null : adProject.mlText;
       let currentTextData = formData.marketplace === 'shopee' ? currentShopeeText : currentMlText;
 
-      // 1. Gerar Textos (SEO) usando a Edge Function
       if (!currentTextData) {
         if (formData.marketplace === 'shopee') {
           setLoadingMessage('Criando copy e SEO otimizado para Shopee...');
@@ -364,7 +439,6 @@ Retorne SOMENTE um JSON válido. Não inclua texto fora do JSON.`;
         }
       }
 
-      // 2. Gerar Imagens usando a Edge Function
       if (!currentImages || currentImages.length === 0) {
         setLoadingMessage('Criando prompts para geração de imagens...');
         
@@ -474,7 +548,6 @@ Retorne APENAS um JSON válido com a chave "imagePrompts" contendo um array de 5
         console.error('Error saving last listing:', e);
       }
 
-      // Desconta o crédito no banco de dados
       if (session?.user?.id) {
         const newCredits = credits - 1;
         await supabase
@@ -747,6 +820,11 @@ Retorne APENAS um JSON válido com a chave "imagePrompts" contendo um array de 5
           )}
         </AnimatePresence>
       </main>
+
+      <PlansModal 
+        isOpen={showPlansModal} 
+        onClose={() => setShowPlansModal(false)} 
+      />
     </div>
   );
 }
