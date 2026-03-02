@@ -39,6 +39,11 @@ export default function Landing({ onLoginClick }: LandingProps) {
     document.getElementById('planos')?.scrollIntoView({ behavior: 'smooth' });
   };
 
+  // 👉 Troque a rota se necessário (se você tiver /signup de verdade)
+  const goToFreeTrial = () => {
+    window.location.href = "/login?signup=1";
+  };
+
   return (
     <div className="min-h-screen bg-[#0F172A] font-sans text-slate-50 selection:bg-orange-500 selection:text-white overflow-x-hidden">
 
@@ -53,35 +58,76 @@ export default function Landing({ onLoginClick }: LandingProps) {
               Anúncio<span className="text-orange-500">Pro</span>
             </span>
           </div>
-          <button
-            onClick={onLoginClick}
-            className="text-sm font-bold text-slate-300 hover:text-white transition-colors border border-slate-700 hover:border-slate-500 px-6 py-2.5 rounded-full"
-          >
-            Acessar Sistema
-          </button>
+
+          <div className="flex items-center gap-3">
+            <button
+              onClick={goToFreeTrial}
+              className="hidden sm:inline-flex text-sm font-black text-orange-300 hover:text-white transition-colors border border-orange-500/40 hover:border-orange-500 px-5 py-2.5 rounded-full"
+            >
+              Teste grátis
+            </button>
+
+            <button
+              onClick={onLoginClick}
+              className="text-sm font-bold text-slate-300 hover:text-white transition-colors border border-slate-700 hover:border-slate-500 px-6 py-2.5 rounded-full"
+            >
+              Acessar Sistema
+            </button>
+          </div>
         </div>
       </header>
 
       {/* HERO SECTION */}
       <section className="pt-40 pb-20 px-4 relative">
         <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] bg-orange-500/20 blur-[120px] rounded-full pointer-events-none"></div>
+
         <div className="max-w-4xl mx-auto text-center relative z-10">
-          <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-slate-800/50 border border-slate-700 text-orange-400 font-bold text-sm mb-8">
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-slate-800/50 border border-slate-700 text-orange-400 font-bold text-sm mb-8"
+          >
             <Sparkles className="w-4 h-4" /> A revolução dos Marketplaces chegou
           </motion.div>
-          <motion.h1 initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 }} className="text-5xl md:text-7xl font-black text-white mb-6 leading-[1.1] tracking-tight">
+
+          <motion.h1
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.1 }}
+            className="text-5xl md:text-7xl font-black text-white mb-6 leading-[1.1] tracking-tight"
+          >
             Venda muito mais na <span className="text-orange-500">Shopee</span> e <span className="text-yellow-500">Mercado Livre</span>
           </motion.h1>
-          <motion.p initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2 }} className="text-lg md:text-xl text-slate-400 mb-10 max-w-2xl mx-auto font-medium leading-relaxed">
+
+          <motion.p
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.2 }}
+            className="text-lg md:text-xl text-slate-400 mb-10 max-w-2xl mx-auto font-medium leading-relaxed"
+          >
             Nossa Inteligência Artificial cria o SEO perfeito e transforma fotos amadoras em imagens de estúdio em apenas 20 segundos.
           </motion.p>
+
           <motion.button
-            initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.3 }}
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.3 }}
             onClick={scrollToPlans}
             className="bg-orange-500 hover:bg-orange-600 text-white px-10 py-5 rounded-2xl font-black text-lg shadow-2xl shadow-orange-500/30 transition-all hover:scale-105 flex items-center gap-3 mx-auto"
           >
             COMECE A VENDER MAIS <ChevronRight className="w-6 h-6" />
           </motion.button>
+
+          {/* ✅ TEXTO/BOTÃO DE TESTE GRÁTIS ABAIXO DO BOTÃO LARANJA */}
+          <div className="mt-6 flex flex-col items-center gap-2">
+            <button
+              onClick={goToFreeTrial}
+              className="text-sm text-slate-300 hover:text-white underline underline-offset-4 transition-all"
+            >
+              Teste grátis — 3 créditos liberados
+            </button>
+            <span className="text-xs text-slate-500">Sem cartão • Sem compromisso</span>
+          </div>
         </div>
       </section>
 
@@ -262,7 +308,7 @@ function SocialProofCarousel() {
                     <span className="text-4xl font-black text-white tracking-tight">{it.value}</span>
                   </div>
 
-                  {/* Ícone estilo “tendência” no canto (sem precisar importar) */}
+                  {/* ícone de tendência no canto (sem precisar importar) */}
                   <svg
                     className="w-16 h-16 text-emerald-500/10 absolute -bottom-4 -right-4"
                     viewBox="0 0 24 24"
@@ -278,7 +324,6 @@ function SocialProofCarousel() {
                   </svg>
                 </div>
 
-                {/* Selo + “chat” + depoimento (igual ao seu estilo atual) */}
                 <div className="text-center mb-2">
                   <div className="flex items-center justify-center gap-2 mb-4 text-orange-500">
                     <span className="text-sm font-black uppercase tracking-wider">Resultados de clientes</span>
