@@ -7,7 +7,6 @@ import { saveAs } from 'file-saver';
 import { get, set, del } from 'idb-keyval';
 import {
   UploadCloud,
-  CheckCircle2,
   Package,
   Image as ImageIcon,
   Download,
@@ -21,7 +20,7 @@ import {
   LogOut,
   User,
   ChevronDown,
-  Crown
+  Star
 } from 'lucide-react';
 
 enum Type {
@@ -45,7 +44,6 @@ interface UserProfile {
   expires_at: string | null;
 }
 
-// ... [Manter interfaces ShopeeData, MLData, GeneratedData, AdProject, LastListing] ...
 interface ShopeeData { title: string; keywords: string[]; coverSuggestion: string; description: string; hashtags: string[]; }
 interface MLData { title: string; bullets: string[]; tags: string[]; description: string; }
 interface GeneratedData { marketplace: Marketplace; images: (string | null)[]; textData: ShopeeData | MLData; }
@@ -67,9 +65,10 @@ const compressImageToWebP = (base64: string, quality = 0.8): Promise<string> => 
   });
 };
 
-const calculateDaysLeft = (expiresAt: string | null) => {
+const calculateDaysLeft = (expiresAt: any) => {
   if (!expiresAt) return 0;
   const diff = new Date(expiresAt).getTime() - new Date().getTime();
+  if (isNaN(diff)) return 0;
   return Math.max(0, Math.ceil(diff / (1000 * 3600 * 24)));
 };
 
@@ -91,22 +90,20 @@ const Header = ({ handleLogout, profile, session, openPlans }: { handleLogout: (
         </div>
         
         <div className="flex items-center gap-3">
-          {/* Mostrador de Créditos (Só para plano Gratuito) */}
-          {!isPremium && profile?.credits !== undefined && (
+          {!isPremium && profile && profile.credits !== undefined && (
             <div className="bg-orange-500/10 text-orange-500 px-3 py-1.5 rounded-full text-sm font-bold flex items-center gap-1.5 border border-orange-500/20">
               <Sparkles className="w-4 h-4" />
               {profile.credits} Créditos
             </div>
           )}
 
-          {/* Menu de Perfil Premium */}
           <div className="relative">
             <button 
               onClick={() => setMenuOpen(!menuOpen)}
               className="flex items-center gap-3 bg-slate-800/50 hover:bg-slate-800 border border-slate-700 px-3 py-1.5 rounded-full transition-colors"
             >
-              <div className={`p-1 rounded-full ${isPremium ? 'bg-gradient-to-tr from-orange-500 to-yellow-400' : 'bg-slate-600'}`}>
-                {isPremium ? <Crown className="w-4 h-4 text-white" /> : <User className="w-4 h-4 text-white" />}
+              <div className={`p-1 rounded-full flex items-center justify-center ${isPremium ? 'bg-gradient-to-tr from-orange-500 to-yellow-400' : 'bg-slate-600'}`}>
+                {isPremium ? <Star className="w-4 h-4 text-white fill-white" /> : <User className="w-4 h-4 text-white" />}
               </div>
               <div className="flex flex-col text-left hidden sm:flex">
                 <span className="text-xs font-bold text-white leading-none capitalize">{profile?.plan_name || 'Gratuito'}</span>
@@ -121,7 +118,6 @@ const Header = ({ handleLogout, profile, session, openPlans }: { handleLogout: (
               <ChevronDown className="w-4 h-4 text-slate-400" />
             </button>
 
-            {/* Dropdown Aberto */}
             {menuOpen && (
               <div className="absolute right-0 mt-2 w-64 bg-[#1E293B] border border-slate-700 rounded-2xl shadow-2xl py-2 z-50">
                 <div className="px-4 py-3 border-b border-slate-700/50 mb-2">
@@ -208,7 +204,6 @@ const PlansModal = ({ isOpen, onClose }: { isOpen: boolean; onClose: () => void 
 
 export default function App() { 
   const [session, setSession] = useState<any>(null); 
-  const [isInitializing, setIsInitializing] = useState(true); 
   const [profile, setProfile] = useState<UserProfile | null>(null);
   const [showPlansModal, setShowPlansModal] = useState(false);
   const [step, setStep] = useState<'input' | 'processing' | 'result'>('input');
@@ -221,58 +216,47 @@ export default function App() {
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
-    supabase.auth.getSession().then(({ data }) => { setSession(data.session); setIsInitializing(false); });
-    const { data: listener } = supabase.auth.onAuthStateChange((_event, session) => { setSession(session); setIsInitializing(false); });
+    supabase.auth.getSession().then(({ data }) => { setSession(data.session); });
+    const { data: listener } = supabase.auth.onAuthStateChange((_event, session) => { setSession(session); });
     return () => { listener.subscription.unsubscribe(); };
   }, []);
 
   useEffect(() => {
     const loadProfile = async () => {
       if (!session?.user?.id) return;
-      const { data } = await supabase.from("profiles").select("credits, plan_name, expires_at").eq("id", session.user.id).single();
-      if (data) {
-        setProfile(data);
-        const daysLeft = calculateDaysLeft(data.expires_at);
-        
-        // Regra de Bloqueio do App
-        if (data.plan_name !== 'Gratuito' && daysLeft <= 0) {
-          setShowPlansModal(true);
-        } else if ((!data.plan_name || data.plan_name === 'Gratuito') && data.credits <= 0) {
-          setShowPlansModal(true);
+      try {
+        const { data, error } = await supabase.from("profiles").select("credits, plan_name, expires_at").eq("id", session.user.id).single();
+        if (error) {
+           const fallback = await supabase.from("profiles").select("credits").eq("id", session.user.id).single();
+           if (fallback.data) setProfile({ credits: fallback.data.credits, plan_name: 'Gratuito', expires_at: null });
+        } else if (data) {
+          setProfile(data as UserProfile);
+          const daysLeft = calculateDaysLeft(data.expires_at);
+          if (data.plan_name && data.plan_name !== 'Gratuito' && daysLeft <= 0) setShowPlansModal(true);
+          else if ((!data.plan_name || data.plan_name === 'Gratuito') && data.credits <= 0) setShowPlansModal(true);
         }
-      }
+      } catch (e) { console.error(e); }
     };
     loadProfile();
   }, [session]);
 
-  const handleLogout = async () => { 
-    await supabase.auth.signOut(); 
-    setSession(null);
-  };
+  const handleLogout = async () => { await supabase.auth.signOut(); setSession(null); };
 
   const generateAIContent = async () => {
-    // Validação de segurança no momento do clique
-    const daysLeft = calculateDaysLeft(profile?.expires_at || null);
-    if (profile?.plan_name && profile.plan_name !== 'Gratuito' && daysLeft <= 0) {
-      alert("Seu plano expirou! Renove para continuar gerando.");
-      setShowPlansModal(true);
-      return;
-    }
-    if ((!profile?.plan_name || profile?.plan_name === 'Gratuito') && (profile?.credits === null || profile?.credits <= 0)) {
-      setShowPlansModal(true); 
-      return; 
-    }
+    if (!profile) return;
+    const isFree = !profile.plan_name || profile.plan_name === 'Gratuito';
+    const daysLeft = calculateDaysLeft(profile.expires_at);
+
+    if (!isFree && daysLeft <= 0) { alert("Seu plano expirou! Renove para continuar gerando."); setShowPlansModal(true); return; }
+    if (isFree && profile.credits <= 0) { setShowPlansModal(true); return; }
 
     try {
-      setError(null);
-      setStep('processing');
-
+      setError(null); setStep('processing');
       const safeGenerateTextJSON = async (prompt: string, schema: any) => {
          const { data } = await supabase.functions.invoke('gerar-anuncio', { body: { action: 'generateText', prompt, schema } });
          let text = data.text || '{}';
          const start = text.indexOf('{'), end = text.lastIndexOf('}');
-         let jsonStr = text.substring(start, end + 1).replace(/[\u0000-\u001F]+/g, " ");
-         return JSON.parse(jsonStr);
+         return JSON.parse(text.substring(start, end + 1).replace(/[\u0000-\u001F]+/g, " "));
       };
 
       let isNewProject = (formData.productName !== adProject.productName || formData.image !== adProject.originalImage);
@@ -303,27 +287,22 @@ export default function App() {
         }));
       }
 
-      try {
-        await supabase.from('anuncios').insert([{ user_id: session.user.id, product_name: formData.productName, marketplace: formData.marketplace, shopee_text: formData.marketplace === 'shopee' ? currentTextData : null, ml_text: formData.marketplace === 'ml' ? currentTextData : null, images: currentImages.filter(img => img !== null) }]);
-      } catch (dbError) { console.error("Erro ao salvar no banco:", dbError); }
+      try { await supabase.from('anuncios').insert([{ user_id: session.user.id, product_name: formData.productName, marketplace: formData.marketplace, shopee_text: formData.marketplace === 'shopee' ? currentTextData : null, ml_text: formData.marketplace === 'ml' ? currentTextData : null, images: currentImages.filter(img => img !== null) }]); } catch (e) { }
 
       const newAdProject = { ...adProject, productName: formData.productName, originalImage: formData.image, generatedImages: currentImages, shopeeText: formData.marketplace === 'shopee' ? currentTextData : adProject.shopeeText, mlText: formData.marketplace === 'ml' ? currentTextData : adProject.mlText };
       const newGeneratedData = { marketplace: formData.marketplace, images: currentImages, textData: currentTextData! };
-      setAdProject(newAdProject);
-      setGeneratedData(newGeneratedData);
+      setAdProject(newAdProject); setGeneratedData(newGeneratedData);
       
       const compressedImages = await Promise.all(currentImages.map(async (img) => img ? await compressImageToWebP(img, 0.8) : null));
       const compressedOriginal = formData.image ? await compressImageToWebP(formData.image, 0.8) : null;
       await set('last_listing', { timestamp: Date.now(), formData: { ...formData, image: compressedOriginal }, adProject: { ...newAdProject, originalImage: compressedOriginal, generatedImages: compressedImages }, generatedData: { ...newGeneratedData, images: compressedImages } });
       setHasLastListing(true);
 
-      // Desconta crédito só se for plano gratuito
-      if (!profile?.plan_name || profile.plan_name === 'Gratuito') {
-        const newCredits = (profile?.credits || 0) - 1;
+      if (isFree) {
+        const newCredits = profile.credits - 1;
         await supabase.from("profiles").update({ credits: newCredits }).eq("id", session.user.id);
-        setProfile(prev => prev ? {...prev, credits: newCredits} : null);
+        setProfile({ ...profile, credits: newCredits });
       }
-      
       setStep('result');
     } catch (err: any) { setError(err.message); setStep('input'); }
   };
@@ -341,13 +320,19 @@ export default function App() {
 
   const loadLastListing = async () => {
     const listing = await get<LastListing>('last_listing');
-    if (listing) {
-      setFormData(listing.formData);
-      setAdProject(listing.adProject);
-      setGeneratedData(listing.generatedData);
-      setStep('result');
+    if (listing) { setFormData(listing.formData); setAdProject(listing.adProject); setGeneratedData(listing.generatedData); setStep('result'); }
+  };
+
+  // --- A FUNÇÃO QUE FALTAVA ESTÁ AQUI ---
+  const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) { 
+      const reader = new FileReader(); 
+      reader.onloadend = () => setFormData({ ...formData, image: reader.result as string }); 
+      reader.readAsDataURL(file); 
     }
   };
+  // --------------------------------------
 
   if (!session) return <Login />;
 
