@@ -104,7 +104,7 @@ const Header = ({ handleLogout, credits }: { handleLogout: () => void, credits: 
       </div>
       <div className="flex items-center gap-4">
         {credits !== null && (
-          <div className="bg-orange-100 text-orange-700 px-3 py-1.5 rounded-full text-sm font-bold flex items-center gap-1.5 border border-orange-200">
+          <div className="bg-orange-100 text-orange-700 px-3 py-1.5 rounded-full text-sm font-bold flex items-center gap-1.5 border border-orange-200 shadow-sm">
             <Sparkles className="w-4 h-4" />
             {credits} {credits === 1 ? 'Crédito' : 'Créditos'}
           </div>
@@ -112,11 +112,9 @@ const Header = ({ handleLogout, credits }: { handleLogout: () => void, credits: 
         <div className="w-px h-6 bg-slate-200 hidden sm:block"></div>
         <button 
           onClick={handleLogout}
-          className="flex items-center gap-2 text-sm font-medium text-slate-500 hover:text-red-600 transition-colors"
-          title="Sair da conta"
+          className="flex items-center gap-2 text-sm font-bold text-slate-500 hover:text-red-600 transition-colors"
         >
-          <span className="hidden sm:block">Sair</span>
-          <LogOut className="w-5 h-5" />
+          Sair <LogOut className="w-5 h-5" />
         </button>
       </div>
     </div>
@@ -157,9 +155,8 @@ const PlansModal = ({ isOpen, onClose }: { isOpen: boolean; onClose: () => void 
             <Sparkles className="w-8 h-8" />
           </div>
           <h2 className="text-3xl font-[800] text-slate-900 mb-2">Aumente suas vendas agora</h2>
-          <p className="text-slate-500 mb-8">Escolha o plano ideal para o seu volume de anúncios.</p>
+          <p className="text-slate-500 mb-8 font-medium">Escolha o plano ideal para o seu volume de anúncios.</p>
 
-          {/* Alternador Mensal / Anual */}
           <div className="flex items-center justify-center gap-4 mb-10">
             <span className={`text-sm font-bold ${billingCycle === 'monthly' ? 'text-slate-900' : 'text-slate-400'}`}>Mensal</span>
             <button 
@@ -175,51 +172,36 @@ const PlansModal = ({ isOpen, onClose }: { isOpen: boolean; onClose: () => void 
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6 text-left">
-            {/* Plano Vendedor Lite */}
             <div className="border-2 border-slate-100 rounded-[20px] p-6 hover:border-orange-200 transition-all group">
               <span className="text-xs font-bold text-orange-500 uppercase tracking-wider">Vendedor Lite</span>
               <div className="flex items-baseline gap-1 mt-2 mb-4">
-                <span className="text-4xl font-black text-slate-900 text-nowrap">R$ {content.lite.price}</span>
-                <span className="text-slate-400 font-medium">{billingCycle === 'monthly' ? '/mês' : '/ano'}</span>
+                <span className="text-4xl font-black text-slate-900">R$ {content.lite.price}</span>
+                <span className="text-slate-400 font-medium">/{billingCycle === 'monthly' ? 'mês' : 'ano'}</span>
               </div>
               <ul className="space-y-3 mb-8">
                 <li className="flex items-center gap-2 text-sm text-orange-600 font-bold"><Check className="w-4 h-4" /> {content.lite.ads}</li>
                 <li className="flex items-center gap-2 text-sm text-slate-600"><Check className="w-4 h-4 text-emerald-500" /> SEO Shopee e Mercado Livre</li>
                 <li className="flex items-center gap-2 text-sm text-slate-600"><Check className="w-4 h-4 text-emerald-500" /> Imagens em alta definição</li>
               </ul>
-              <button 
-                onClick={() => handleSubscribe('Vendedor Lite')}
-                className="w-full py-3 rounded-xl bg-slate-900 text-white font-bold hover:bg-slate-800 transition-all shadow-lg"
-              >
-                Assinar Agora
-              </button>
+              <button onClick={() => handleSubscribe('Vendedor Lite')} className="w-full py-3 rounded-xl bg-slate-900 text-white font-bold hover:bg-slate-800 transition-all shadow-lg">Assinar Agora</button>
             </div>
 
-            {/* Plano Pro */}
             <div className="border-2 border-orange-500 rounded-[20px] p-6 bg-orange-50/30 relative">
               <div className="absolute -top-3 right-6 bg-orange-500 text-white text-[10px] font-bold px-3 py-1 rounded-full uppercase">Mais Vendido</div>
               <span className="text-xs font-bold text-orange-500 uppercase tracking-wider">Plano Pro</span>
               <div className="flex items-baseline gap-1 mt-2 mb-4">
-                <span className="text-4xl font-black text-slate-900 text-nowrap">R$ {content.pro.price}</span>
-                <span className="text-slate-400 font-medium">{billingCycle === 'monthly' ? '/mês' : '/ano'}</span>
+                <span className="text-4xl font-black text-slate-900">R$ {content.pro.price}</span>
+                <span className="text-slate-400 font-medium">/{billingCycle === 'monthly' ? 'mês' : 'ano'}</span>
               </div>
               <ul className="space-y-3 mb-8">
                 <li className="flex items-center gap-2 text-sm text-orange-600 font-bold"><Check className="w-4 h-4" /> {content.pro.ads}</li>
-                <li className="flex items-center gap-2 text-sm text-slate-700 font-semibold"><Check className="w-4 h-4 text-emerald-500" /> SEO Shopee e Mercado Livre</li>
-                <li className="flex items-center gap-2 text-sm text-slate-700 font-semibold"><Check className="w-4 h-4 text-emerald-500" /> Imagens em alta definição</li>
-                <li className="flex items-center gap-2 text-sm text-slate-600"><Check className="w-4 h-4 text-emerald-500" /> Suporte prioritário</li>
+                <li className="flex items-center gap-2 text-sm text-slate-800 font-bold"><Check className="w-4 h-4 text-emerald-500" /> SEO Shopee e Mercado Livre</li>
+                <li className="flex items-center gap-2 text-sm text-slate-800 font-bold"><Check className="w-4 h-4 text-emerald-500" /> Imagens em alta definição</li>
               </ul>
-              <button 
-                onClick={() => handleSubscribe('Pro')}
-                className="w-full py-3 rounded-xl bg-orange-500 text-white font-bold hover:bg-orange-600 transition-all shadow-lg shadow-orange-200"
-              >
-                Assinar Agora
-              </button>
+              <button onClick={() => handleSubscribe('Pro')} className="w-full py-3 rounded-xl bg-orange-500 text-white font-bold hover:bg-orange-600 transition-all shadow-lg">Assinar Agora</button>
             </div>
           </div>
-          <button onClick={onClose} className="mt-8 text-sm text-slate-400 hover:text-slate-600 font-medium transition-colors">
-            Talvez mais tarde
-          </button>
+          <button onClick={onClose} className="mt-8 text-sm text-slate-400 hover:text-slate-600 font-bold">Talvez mais tarde</button>
         </div>
       </motion.div>
     </div>
@@ -241,14 +223,8 @@ export default function App() {
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
-    supabase.auth.getSession().then(({ data }) => {
-      setSession(data.session);
-      setIsInitializing(false);
-    });
-    const { data: listener } = supabase.auth.onAuthStateChange((_event, session) => {
-      setSession(session);
-      setIsInitializing(false);
-    });
+    supabase.auth.getSession().then(({ data }) => { setSession(data.session); setIsInitializing(false); });
+    const { data: listener } = supabase.auth.onAuthStateChange((_event, session) => { setSession(session); setIsInitializing(false); });
     return () => { listener.subscription.unsubscribe(); };
   }, []);
 
@@ -264,136 +240,42 @@ export default function App() {
     loadCredits();
   }, [session]);
 
-  useEffect(() => {
-    const checkLastListing = async () => {
-      try {
-        const listing = await get<LastListing>('last_listing');
-        if (listing && (Date.now() - listing.timestamp < 7 * 24 * 60 * 60 * 1000)) {
-          setHasLastListing(true);
-        } else {
-          await del('last_listing');
-        }
-      } catch (e) { console.error(e); }
-    };
-    checkLastListing();
-  }, []);
-
   const handleLogout = async () => { await supabase.auth.signOut(); };
 
-  const loadLastListing = async () => {
-    const listing = await get<LastListing>('last_listing');
-    if (listing) {
-      setFormData(listing.formData);
-      setAdProject(listing.adProject);
-      setGeneratedData(listing.generatedData);
-      setStep('result');
-    }
-  };
-
-  const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (file) {
-      const reader = new FileReader();
-      reader.onloadend = () => { setFormData({ ...formData, image: reader.result as string }); };
-      reader.readAsDataURL(file);
-    }
-  };
-
-  const handleDrop = (e: React.DragEvent) => {
-    e.preventDefault();
-    const file = e.dataTransfer.files?.[0];
-    if (file?.type.startsWith('image/')) {
-      const reader = new FileReader();
-      reader.onloadend = () => { setFormData({ ...formData, image: reader.result as string }); };
-      reader.readAsDataURL(file);
-    }
-  };
-
-  const callSupabaseFunction = async (bodyData: any) => {
-    const { data, error } = await supabase.functions.invoke('gerar-anuncio', { body: bodyData });
-    if (error) throw new Error(error.message);
-    if (data.error) throw new Error(data.error);
-    return data;
-  }
-
   const generateAIContent = async () => {
-    if (credits === null || credits <= 0) {
-      setShowPlansModal(true);
-      return;
-    }
-
+    if (credits === null || credits <= 0) { setShowPlansModal(true); return; }
     try {
       setError(null);
       setStep('processing');
-
       const safeGenerateTextJSON = async (prompt: string, schema: any) => {
-         const data = await callSupabaseFunction({ action: 'generateText', prompt, schema });
+         const { data } = await supabase.functions.invoke('gerar-anuncio', { body: { action: 'generateText', prompt, schema } });
          let text = data.text || '{}';
          const start = text.indexOf('{'), end = text.lastIndexOf('}');
          let jsonStr = text.substring(start, end + 1).replace(/[\u0000-\u001F]+/g, " ");
          return JSON.parse(jsonStr);
       };
-
-      let isNewProject = (formData.productName !== adProject.productName || formData.image !== adProject.originalImage);
-      let currentImages = isNewProject ? [] : adProject.generatedImages;
-      let currentTextData = formData.marketplace === 'shopee' ? adProject.shopeeText : adProject.mlText;
-
-      if (!currentTextData) {
-        if (formData.marketplace === 'shopee') {
-          setLoadingMessage('Criando SEO para Shopee...');
-          const seoSchema = {
-            type: Type.OBJECT,
-            properties: { title: { type: Type.STRING }, keywords: { type: Type.ARRAY, items: { type: Type.STRING } }, coverSuggestion: { type: Type.STRING }, description: { type: Type.STRING }, hashtags: { type: Type.ARRAY, items: { type: Type.STRING } } },
-            required: ["title", "keywords", "coverSuggestion", "description", "hashtags"]
-          };
-          currentTextData = await safeGenerateTextJSON(`Especialista SEO Shopee para: ${formData.productName}`, seoSchema);
-        } else {
-          setLoadingMessage('Criando SEO para Mercado Livre...');
-          const mlSchema = {
-            type: Type.OBJECT,
-            properties: { title: { type: Type.STRING }, bullets: { type: Type.ARRAY, items: { type: Type.STRING } }, tags: { type: Type.ARRAY, items: { type: Type.STRING } }, description: { type: Type.STRING } },
-            required: ["title", "bullets", "tags", "description"]
-          };
-          currentTextData = await safeGenerateTextJSON(`Especialista SEO ML para: ${formData.productName}`, mlSchema);
-        }
-      }
-
-      if (!currentImages || currentImages.length === 0) {
-        setLoadingMessage('Gerando imagens profissionais...');
-        const promptsData = await safeGenerateTextJSON(`Create 5 image prompts for: ${formData.productName}`, { type: Type.OBJECT, properties: { imagePrompts: { type: Type.ARRAY, items: { type: Type.STRING } } }, required: ["imagePrompts"] });
-        
-        const base64Data = formData.image!.split(',')[1];
-        const mimeType = formData.image!.match(/data:(.*?);/)?.[1] || 'image/jpeg';
-
-        currentImages = await Promise.all(promptsData.imagePrompts.slice(0, 5).map(async (prompt: string) => {
-          const data = await callSupabaseFunction({ action: 'generateImage', prompt, imageBase64: base64Data, mimeType });
-          return data.candidates?.[0]?.content?.parts[0]?.inlineData ? `data:image/png;base64,${data.candidates[0].content.parts[0].inlineData.data}` : null;
-        }));
-      }
-
-      // --- SALVANDO NO HISTÓRICO DO SUPABASE ---
-      try {
-        await supabase.from('anuncios').insert([{
-          user_id: session.user.id,
-          product_name: formData.productName,
-          marketplace: formData.marketplace,
-          shopee_text: formData.marketplace === 'shopee' ? currentTextData : null,
-          ml_text: formData.marketplace === 'ml' ? currentTextData : null,
-          images: currentImages.filter(img => img !== null)
-        }]);
-      } catch (dbError) { console.error("Erro ao salvar no banco:", dbError); }
-
-      const newAdProject = { ...adProject, productName: formData.productName, originalImage: formData.image, generatedImages: currentImages, shopeeText: formData.marketplace === 'shopee' ? currentTextData : adProject.shopeeText, mlText: formData.marketplace === 'ml' ? currentTextData : adProject.mlText };
-      const newGeneratedData = { marketplace: formData.marketplace, images: currentImages, textData: currentTextData! };
-
-      setAdProject(newAdProject);
-      setGeneratedData(newGeneratedData);
       
-      const compressedImages = await Promise.all(currentImages.map(async (img) => img ? await compressImageToWebP(img, 0.8) : null));
-      const compressedOriginal = formData.image ? await compressImageToWebP(formData.image, 0.8) : null;
-      await set('last_listing', { timestamp: Date.now(), formData: { ...formData, image: compressedOriginal }, adProject: { ...newAdProject, originalImage: compressedOriginal, generatedImages: compressedImages }, generatedData: { ...newGeneratedData, images: compressedImages } });
-      setHasLastListing(true);
+      const promptsData = await safeGenerateTextJSON(`Create 5 image prompts for: ${formData.productName}`, { type: Type.OBJECT, properties: { imagePrompts: { type: Type.ARRAY, items: { type: Type.STRING } } }, required: ["imagePrompts"] });
+      const base64Data = formData.image!.split(',')[1];
+      const mimeType = formData.image!.match(/data:(.*?);/)?.[1] || 'image/jpeg';
+      
+      setLoadingMessage('Gerando imagens profissionais...');
+      const currentImages = await Promise.all(promptsData.imagePrompts.slice(0, 5).map(async (prompt: string) => {
+        const { data } = await supabase.functions.invoke('gerar-anuncio', { body: { action: 'generateImage', prompt, imageBase64: base64Data, mimeType } });
+        return data.candidates?.[0]?.content?.parts[0]?.inlineData ? `data:image/png;base64,${data.candidates[0].content.parts[0].inlineData.data}` : null;
+      }));
 
+      setLoadingMessage('Otimizando SEO...');
+      let currentTextData;
+      if (formData.marketplace === 'shopee') {
+        currentTextData = await safeGenerateTextJSON(`Especialista SEO Shopee para: ${formData.productName}`, { type: Type.OBJECT, properties: { title: { type: Type.STRING }, description: { type: Type.STRING }, hashtags: { type: Type.ARRAY, items: { type: Type.STRING } }, keywords: { type: Type.ARRAY, items: { type: Type.STRING } } }, required: ["title", "description", "hashtags", "keywords"] });
+      } else {
+        currentTextData = await safeGenerateTextJSON(`Especialista SEO ML para: ${formData.productName}`, { type: Type.OBJECT, properties: { title: { type: Type.STRING }, bullets: { type: Type.ARRAY, items: { type: Type.STRING } }, description: { type: Type.STRING }, tags: { type: Type.ARRAY, items: { type: Type.STRING } } }, required: ["title", "bullets", "description", "tags"] });
+      }
+
+      await supabase.from('anuncios').insert([{ user_id: session.user.id, product_name: formData.productName, marketplace: formData.marketplace, shopee_text: formData.marketplace === 'shopee' ? currentTextData : null, ml_text: formData.marketplace === 'ml' ? currentTextData : null, images: currentImages.filter(img => img !== null) }]);
+
+      setGeneratedData({ marketplace: formData.marketplace, images: currentImages, textData: currentTextData });
       const newCredits = credits - 1;
       await supabase.from("profiles").update({ credits: newCredits }).eq("id", session.user.id);
       setCredits(newCredits);
@@ -401,22 +283,7 @@ export default function App() {
     } catch (err: any) { setError(err.message); setStep('input'); }
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!formData.productName || !formData.image) return alert('Preencha os campos obrigatórios.');
-    generateAIContent();
-  };
-
-  const resetApp = () => { setStep('input'); setFormData({ productName: '', marketplace: 'shopee', image: null }); setGeneratedData(null); };
-
-  const downloadZip = async () => {
-    if (!generatedData) return;
-    const zip = new JSZip();
-    const data = generatedData.textData as any;
-    zip.file(`SEO.txt`, `TÍTULO: ${data.title}\nDESCRIÇÃO: ${data.description}`);
-    generatedData.images.forEach((img, i) => img && zip.file(`imagem_${i+1}.png`, img.split(',')[1], { base64: true }));
-    saveAs(await zip.generateAsync({ type: 'blob' }), `AnuncioPro_${formData.productName}.zip`);
-  };
+  if (!session) return <Login />;
 
   return (
     <div className="min-h-screen bg-[#F7F8FA] font-sans text-slate-900">
@@ -424,64 +291,73 @@ export default function App() {
       <main className="max-w-7xl mx-auto px-4 py-12">
         <AnimatePresence mode="wait">
           {step === 'input' && (
-            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="max-w-4xl mx-auto">
+            <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="max-w-4xl mx-auto">
               <div className="text-center mb-12">
-                <h1 className="text-4xl font-black text-slate-900 mb-4">Crie anúncios que vendem</h1>
-                <p className="text-slate-500">SEO + Imagens otimizadas em segundos.</p>
+                <h1 className="text-5xl font-black text-slate-900 mb-4 tracking-tight">Crie anúncios que vendem</h1>
+                <p className="text-slate-500 text-lg font-medium">SEO + Imagens otimizadas em segundos.</p>
               </div>
-              <div className="bg-white rounded-3xl border border-slate-200 shadow-sm p-8">
-                <form onSubmit={handleSubmit} className="space-y-8">
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+              <div className="bg-white rounded-[32px] border border-slate-200 shadow-sm p-10">
+                <form onSubmit={(e) => { e.preventDefault(); generateAIContent(); }} className="space-y-10">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-10">
                     <div className="space-y-6">
                       <label className="block text-sm font-bold">Nome do Produto *</label>
-                      <input type="text" className="w-full p-3 rounded-xl border" value={formData.productName} onChange={e => setFormData({...formData, productName: e.target.value})} />
+                      <input type="text" required className="w-full p-4 rounded-xl border" value={formData.productName} onChange={e => setFormData({...formData, productName: e.target.value})} />
                       <label className="block text-sm font-bold">Marketplace</label>
                       <div className="flex gap-4">
                         {['shopee', 'ml'].map(m => (
-                          <button key={m} type="button" onClick={() => setFormData({...formData, marketplace: m as Marketplace})} className={`flex-1 p-3 rounded-xl border ${formData.marketplace === m ? 'bg-orange-500 text-white' : ''}`}>
-                            {m === 'shopee' ? 'Shopee' : 'Mercado Livre'}
-                          </button>
+                          <button key={m} type="button" onClick={() => setFormData({...formData, marketplace: m as Marketplace})} className={`flex-1 p-4 rounded-xl border font-bold ${formData.marketplace === m ? 'bg-orange-500 text-white' : ''}`}>{m === 'shopee' ? 'Shopee' : 'Mercado Livre'}</button>
                         ))}
                       </div>
                     </div>
-                    <div className="border-2 border-dashed rounded-3xl p-8 flex flex-col items-center justify-center relative min-h-[250px]" onClick={() => !formData.image && fileInputRef.current?.click()}>
+                    <div className="border-2 border-dashed rounded-[32px] p-8 flex flex-col items-center justify-center relative min-h-[280px]" onClick={() => !formData.image && fileInputRef.current?.click()}>
                       <input type="file" ref={fileInputRef} className="hidden" onChange={handleImageUpload} />
-                      {formData.image ? <img src={formData.image} className="h-full object-contain" /> : <div className="text-center"><UploadCloud className="mx-auto mb-2" /> Carregar Foto</div>}
+                      {formData.image ? <img src={formData.image} className="h-full object-contain" /> : <div className="text-center font-bold text-slate-400"><UploadCloud className="mx-auto mb-2 w-10 h-10" /> Carregar Foto</div>}
                     </div>
                   </div>
-                  <div className="flex justify-end gap-4">
-                    {hasLastListing && <button type="button" onClick={loadLastListing} className="p-3 rounded-xl border flex gap-2"><History /> Último</button>}
-                    <button type="submit" className="bg-orange-500 text-white p-3 px-8 rounded-xl font-bold">Gerar Anúncio</button>
+                  <div className="flex justify-end pt-6 border-t">
+                    <button type="submit" className="bg-orange-500 text-white p-4 px-10 rounded-xl font-black shadow-lg shadow-orange-100 flex items-center gap-2">
+                      <Sparkles className="w-5 h-5" /> Gerar Anúncio com IA
+                    </button>
                   </div>
                 </form>
               </div>
             </motion.div>
           )}
+
           {step === 'processing' && (
-            <div className="text-center py-20">
-              <Loader2 className="w-12 h-12 animate-spin mx-auto text-orange-500 mb-4" />
-              <h2 className="text-xl font-bold">{loadingMessage}</h2>
+            <div className="text-center py-24">
+              <Loader2 className="w-16 h-16 animate-spin mx-auto text-orange-500 mb-6" />
+              <h2 className="text-2xl font-black">{loadingMessage}</h2>
             </div>
           )}
+
           {step === 'result' && generatedData && (
-            <div className="max-w-6xl mx-auto space-y-8">
+            <div className="max-w-6xl mx-auto space-y-10">
               <div className="flex justify-between items-center">
-                <h2 className="text-2xl font-black">Anúncio Pronto!</h2>
+                <h2 className="text-3xl font-black">Anúncio Pronto!</h2>
                 <div className="flex gap-4">
-                  <button onClick={resetApp} className="p-3 rounded-xl border">Novo</button>
-                  <button onClick={downloadZip} className="bg-orange-500 text-white p-3 px-8 rounded-xl flex gap-2"><Download /> Baixar ZIP</button>
+                  <button onClick={() => setStep('input')} className="p-4 px-8 rounded-xl border font-bold">Novo Produto</button>
+                  <button onClick={() => {}} className="bg-orange-500 text-white p-4 px-8 rounded-xl font-black flex gap-2 shadow-lg shadow-orange-100"><Download /> Baixar ZIP</button>
                 </div>
               </div>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-                <div className="bg-white p-6 rounded-3xl border space-y-4">
-                  <h3 className="font-bold border-b pb-2">Imagens Geradas</h3>
+
+              <div className="grid grid-cols-1 lg:grid-cols-12 gap-10">
+                {/* Coluna de Imagens (Premium Look) */}
+                <div className="lg:col-span-5 bg-white p-8 rounded-[32px] border border-slate-200 space-y-6 shadow-sm">
+                  <h3 className="font-black text-slate-900 border-b pb-4">Imagens Geradas</h3>
+                  <div className="aspect-square bg-slate-50 rounded-2xl overflow-hidden border">
+                    <img src={generatedData.images[0]!} className="w-full h-full object-cover" />
+                  </div>
                   <div className="grid grid-cols-2 gap-4">
-                    {generatedData.images.map((img, i) => img && <img key={i} src={img} className="rounded-xl border" />)}
+                    {generatedData.images.slice(1, 5).map((img, i) => img && <img key={i} src={img} className="rounded-xl border shadow-sm" />)}
                   </div>
                 </div>
-                <div className="bg-white p-6 rounded-3xl border">
-                  <h3 className="font-bold border-b pb-2">SEO Otimizado</h3>
-                  <pre className="text-sm whitespace-pre-wrap mt-4">{JSON.stringify(generatedData.textData, null, 2)}</pre>
+                {/* Coluna de SEO */}
+                <div className="lg:col-span-7 bg-white p-8 rounded-[32px] border border-slate-200 shadow-sm">
+                  <h3 className="font-black text-slate-900 border-b pb-4 mb-8">SEO Especialista</h3>
+                  <pre className="text-sm whitespace-pre-wrap font-sans text-slate-600 leading-relaxed">
+                    {JSON.stringify(generatedData.textData, null, 2)}
+                  </pre>
                 </div>
               </div>
             </div>
