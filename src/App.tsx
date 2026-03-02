@@ -94,25 +94,26 @@ const compressImageToWebP = (base64: string, quality = 0.8): Promise<string> => 
 // --- Components ---
 
 const Header = ({ handleLogout, credits }: { handleLogout: () => void, credits: number | null }) => (
-  <header className="bg-white border-b border-slate-200 sticky top-0 z-50">
+  // TOPO ESCURO INTEGRADO AO NOVO FUNDO
+  <header className="bg-[#0F172A] border-b border-slate-800 sticky top-0 z-50">
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
       <div className="flex items-center gap-2">
         <div className="bg-orange-500 p-2 rounded-lg">
           <Package className="w-6 h-6 text-white" />
         </div>
-        <span className="text-xl font-bold text-slate-900 tracking-tight">Anúncio<span className="text-orange-500">Pro</span></span>
+        <span className="text-xl font-bold text-white tracking-tight">Anúncio<span className="text-orange-500">Pro</span></span>
       </div>
       <div className="flex items-center gap-4">
         {credits !== null && (
-          <div className="bg-orange-100 text-orange-700 px-3 py-1.5 rounded-full text-sm font-bold flex items-center gap-1.5 border border-orange-200">
+          <div className="bg-orange-500/10 text-orange-500 px-3 py-1.5 rounded-full text-sm font-bold flex items-center gap-1.5 border border-orange-500/20">
             <Sparkles className="w-4 h-4" />
             {credits} {credits === 1 ? 'Crédito' : 'Créditos'}
           </div>
         )}
-        <div className="w-px h-6 bg-slate-200 hidden sm:block"></div>
+        <div className="w-px h-6 bg-slate-800 hidden sm:block"></div>
         <button 
           onClick={handleLogout}
-          className="flex items-center gap-2 text-sm font-bold text-slate-500 hover:text-red-600 transition-colors"
+          className="flex items-center gap-2 text-sm font-bold text-slate-400 hover:text-red-500 transition-colors"
         >
           Sair <LogOut className="w-5 h-5" />
         </button>
@@ -144,7 +145,7 @@ const PlansModal = ({ isOpen, onClose }: { isOpen: boolean; onClose: () => void 
   };
 
   return (
-    <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm">
+    <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-slate-900/80 backdrop-blur-sm">
       <motion.div 
         initial={{ opacity: 0, scale: 0.9, y: 20 }}
         animate={{ opacity: 1, scale: 1, y: 0 }}
@@ -255,12 +256,10 @@ export default function App() {
     checkLastListing();
   }, []);
 
-  // --- NOVA FUNÇÃO DE LOGOUT (Força a tela de Login a aparecer) ---
   const handleLogout = async () => { 
     await supabase.auth.signOut(); 
-    setSession(null); 
+    setSession(null);
   };
-  // ---------------------------------------------------------------
 
   const loadLastListing = async () => {
     const listing = await get<LastListing>('last_listing');
@@ -333,7 +332,6 @@ export default function App() {
         }));
       }
 
-      // --- SALVANDO NO HISTÓRICO DO SUPABASE ---
       try {
         await supabase.from('anuncios').insert([{
           user_id: session.user.id,
@@ -377,39 +375,41 @@ export default function App() {
   if (!session) return <Login />;
 
   return (
-    <div className="min-h-screen bg-[#F7F8FA] font-sans text-slate-900">
+    // MUDANÇA DA COR DE FUNDO PRINCIPAL AQUI bg-[#0F172A]
+    <div className="min-h-screen bg-[#0F172A] font-sans text-slate-900">
       <Header handleLogout={handleLogout} credits={credits} />
       <main className="max-w-7xl mx-auto px-4 py-12">
         <AnimatePresence mode="wait">
           {step === 'input' && (
             <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="max-w-4xl mx-auto">
               <div className="text-center mb-12">
-                <h1 className="text-5xl font-black text-slate-900 mb-4 tracking-tight">Crie anúncios que vendem</h1>
-                <p className="text-slate-500 text-lg font-medium">SEO + Imagens otimizadas para Marketplaces.</p>
+                {/* Títulos em branco para contrastar com o azul */}
+                <h1 className="text-5xl font-black text-white mb-4 tracking-tight">Crie anúncios que vendem</h1>
+                <p className="text-slate-400 text-lg font-medium">SEO + Imagens otimizadas para Marketplaces.</p>
               </div>
-              <div className="bg-white rounded-[32px] border border-slate-200 shadow-sm p-10">
+              <div className="bg-white rounded-[32px] border border-slate-200 shadow-xl p-10">
                 <form onSubmit={(e) => { e.preventDefault(); generateAIContent(); }} className="space-y-10">
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-10">
                     <div className="space-y-6">
                       <label className="block text-sm font-bold text-slate-700">Nome do Produto *</label>
-                      <input type="text" required className="w-full p-4 rounded-xl border border-slate-200 outline-none focus:ring-2 focus:ring-orange-500" value={formData.productName} onChange={e => setFormData({...formData, productName: e.target.value})} />
+                      <input type="text" required className="w-full p-4 rounded-xl border border-slate-200 outline-none focus:ring-2 focus:ring-orange-500 bg-slate-50 text-slate-900" value={formData.productName} onChange={e => setFormData({...formData, productName: e.target.value})} />
                       <label className="block text-sm font-bold text-slate-700">Marketplace</label>
                       <div className="flex gap-4">
                         {['shopee', 'ml'].map(m => (
-                          <button key={m} type="button" onClick={() => setFormData({...formData, marketplace: m as Marketplace})} className={`flex-1 p-4 rounded-xl border font-bold transition-all ${formData.marketplace === m ? 'bg-orange-500 border-orange-500 text-white shadow-lg shadow-orange-100' : 'bg-white text-slate-500 hover:border-slate-300'}`}>
+                          <button key={m} type="button" onClick={() => setFormData({...formData, marketplace: m as Marketplace})} className={`flex-1 p-4 rounded-xl border font-bold transition-all ${formData.marketplace === m ? 'bg-orange-500 border-orange-500 text-white shadow-lg shadow-orange-500/30' : 'bg-white text-slate-500 hover:border-slate-300 hover:bg-slate-50'}`}>
                             {m === 'shopee' ? 'Shopee' : 'Mercado Livre'}
                           </button>
                         ))}
                       </div>
                     </div>
-                    <div className="border-2 border-dashed border-slate-200 rounded-[32px] p-8 flex flex-col items-center justify-center relative min-h-[280px] hover:border-orange-300 transition-colors cursor-pointer" onClick={() => !formData.image && fileInputRef.current?.click()}>
+                    <div className="border-2 border-dashed border-slate-200 bg-slate-50 rounded-[32px] p-8 flex flex-col items-center justify-center relative min-h-[280px] hover:border-orange-300 transition-colors cursor-pointer group" onClick={() => !formData.image && fileInputRef.current?.click()}>
                       <input type="file" ref={fileInputRef} className="hidden" onChange={handleImageUpload} />
-                      {formData.image ? <img src={formData.image} className="h-full object-contain rounded-xl" /> : <div className="text-center text-slate-400 font-bold leading-tight"><UploadCloud className="mx-auto mb-3 w-10 h-10 text-orange-400" /> Clique ou arraste a foto aqui</div>}
+                      {formData.image ? <img src={formData.image} className="h-full object-contain rounded-xl" /> : <div className="text-center text-slate-400 font-bold leading-tight group-hover:text-orange-500 transition-colors"><UploadCloud className="mx-auto mb-3 w-10 h-10 text-orange-400" /> Clique ou arraste a foto aqui</div>}
                     </div>
                   </div>
-                  <div className="flex justify-end gap-4 pt-6 border-t border-slate-50">
-                    {hasLastListing && <button type="button" onClick={loadLastListing} className="p-4 rounded-xl border border-slate-200 font-bold hover:bg-slate-50 flex items-center gap-2"><History className="w-5 h-5"/> Último</button>}
-                    <button type="submit" className="bg-orange-500 hover:bg-orange-600 text-white p-4 px-10 rounded-xl font-black shadow-lg shadow-orange-100 transition-all flex items-center gap-2">
+                  <div className="flex justify-end gap-4 pt-6 border-t border-slate-100">
+                    {hasLastListing && <button type="button" onClick={loadLastListing} className="p-4 rounded-xl border border-slate-200 font-bold hover:bg-slate-50 flex items-center gap-2 text-slate-700"><History className="w-5 h-5"/> Último Anúncio</button>}
+                    <button type="submit" className="bg-orange-500 hover:bg-orange-600 text-white p-4 px-10 rounded-xl font-black shadow-lg shadow-orange-500/30 transition-all flex items-center gap-2">
                       <Sparkles className="w-5 h-5" /> Gerar Anúncio com IA
                     </button>
                   </div>
@@ -419,12 +419,12 @@ export default function App() {
           )}
 
           {step === 'processing' && (
-            <div className="text-center py-24">
+            <div className="text-center py-32">
               <div className="relative w-24 h-24 mx-auto mb-8">
-                <div className="absolute inset-0 border-4 border-slate-100 rounded-full"></div>
+                <div className="absolute inset-0 border-4 border-slate-700 rounded-full"></div>
                 <div className="absolute inset-0 border-4 border-orange-500 rounded-full border-t-transparent animate-spin"></div>
               </div>
-              <h2 className="text-2xl font-black text-slate-900 mb-2">{loadingMessage}</h2>
+              <h2 className="text-2xl font-black text-white mb-2">{loadingMessage}</h2>
               <p className="text-slate-400 font-medium">Isso leva cerca de 20 segundos...</p>
             </div>
           )}
@@ -433,18 +433,18 @@ export default function App() {
             <div className="max-w-6xl mx-auto space-y-10">
                <div className="flex flex-col md:flex-row justify-between items-center gap-6">
                 <div>
-                  <h2 className="text-3xl font-black text-slate-900">Anúncio Pronto!</h2>
-                  <p className="text-slate-500 font-medium">SEO e Imagens geradas para {generatedData.marketplace === 'ml' ? 'Mercado Livre' : 'Shopee'}</p>
+                  <h2 className="text-3xl font-black text-white">Anúncio Pronto!</h2>
+                  <p className="text-slate-400 font-medium">SEO e Imagens geradas para {generatedData.marketplace === 'ml' ? 'Mercado Livre' : 'Shopee'}</p>
                 </div>
                 <div className="flex gap-4">
-                  <button onClick={resetApp} className="p-4 px-8 rounded-xl border border-slate-200 font-bold hover:bg-slate-50">Novo Produto</button>
-                  <button onClick={downloadZip} className="bg-orange-500 text-white p-4 px-8 rounded-xl font-black flex items-center gap-2 shadow-lg shadow-orange-100"><Download className="w-5 h-5" /> Baixar Pacote</button>
+                  <button onClick={resetApp} className="p-4 px-8 rounded-xl bg-slate-800 text-white font-bold hover:bg-slate-700 transition-colors border border-slate-700">Novo Produto</button>
+                  <button onClick={downloadZip} className="bg-orange-500 text-white p-4 px-8 rounded-xl font-black flex items-center gap-2 shadow-lg shadow-orange-500/20 hover:bg-orange-600 transition-colors"><Download className="w-5 h-5" /> Baixar Pacote</button>
                 </div>
               </div>
 
               <div className="grid grid-cols-1 lg:grid-cols-12 gap-10">
-                <div className="lg:col-span-5 bg-white p-8 rounded-[32px] border border-slate-200 space-y-6 shadow-sm">
-                  <h3 className="font-black text-slate-900 border-b border-slate-50 pb-4 flex items-center gap-2"><ImageIcon className="w-5 h-5 text-orange-500" /> Imagens Geradas</h3>
+                <div className="lg:col-span-5 bg-white p-8 rounded-[32px] border border-slate-200 space-y-6 shadow-2xl">
+                  <h3 className="font-black text-slate-900 border-b border-slate-100 pb-4 flex items-center gap-2"><ImageIcon className="w-5 h-5 text-orange-500" /> Imagens Geradas</h3>
                   <div className="aspect-square bg-slate-50 rounded-2xl overflow-hidden border border-slate-100">
                     <img src={generatedData.images[0]!} className="w-full h-full object-cover" />
                   </div>
@@ -452,7 +452,7 @@ export default function App() {
                     {generatedData.images.slice(1).map((img, i) => img && <img key={i} src={img} className="rounded-xl border border-slate-100 shadow-sm" />)}
                   </div>
                 </div>
-                <div className="lg:col-span-7 bg-white p-8 rounded-[32px] border border-slate-200 shadow-sm">
+                <div className="lg:col-span-7 bg-white p-8 rounded-[32px] border border-slate-200 shadow-2xl">
                   {generatedData.marketplace === 'shopee' ? (
                     <ShopeeResultCard data={generatedData.textData as ShopeeData} />
                   ) : (
@@ -483,13 +483,13 @@ const ShopeeResultCard = ({ data }: { data: ShopeeData }) => {
     <div className="space-y-8">
       <div className="flex justify-between items-center border-b border-slate-100 pb-4">
          <h3 className="font-black text-slate-900 flex items-center gap-2"><ShoppingBag className="w-5 h-5 text-orange-500" /> SEO Especialista - Shopee</h3>
-         <button onClick={copyToClipboard} className="flex items-center gap-1.5 text-sm font-bold text-slate-600 hover:text-orange-600 transition-colors bg-white px-4 py-2 rounded-lg border border-slate-200 shadow-sm">
+         <button onClick={copyToClipboard} className="flex items-center gap-1.5 text-sm font-bold text-slate-600 hover:text-orange-600 transition-colors bg-slate-50 px-4 py-2 rounded-lg border border-slate-200 shadow-sm">
            {copied ? <Check className="w-4 h-4 text-emerald-500" /> : <Copy className="w-4 h-4" />} {copied ? 'Copiado!' : 'Copiar Tudo'}
          </button>
       </div>
-      <div><span className="text-[10px] font-black text-orange-500 uppercase tracking-widest mb-2 block">Título Otimizado</span><div className="bg-slate-50 p-4 rounded-xl border font-bold text-slate-900">{data.title}</div></div>
-      <div><span className="text-[10px] font-black text-orange-500 uppercase tracking-widest mb-2 block">Descrição</span><div className="bg-slate-50 p-4 rounded-xl border text-slate-600 whitespace-pre-wrap text-sm leading-relaxed">{data.description}</div></div>
-      <div><span className="text-[10px] font-black text-orange-500 uppercase tracking-widest mb-2 block">Hashtags</span><div className="flex flex-wrap gap-2">{data.hashtags?.map((h, i) => <span key={i} className="text-orange-600 font-bold text-sm">#{h.replace('#','')}</span>)}</div></div>
+      <div><span className="text-[10px] font-black text-orange-500 uppercase tracking-widest mb-2 block">Título Otimizado</span><div className="bg-slate-50 p-4 rounded-xl border border-slate-100 font-bold text-slate-900">{data.title}</div></div>
+      <div><span className="text-[10px] font-black text-orange-500 uppercase tracking-widest mb-2 block">Descrição</span><div className="bg-slate-50 p-4 rounded-xl border border-slate-100 text-slate-600 whitespace-pre-wrap text-sm leading-relaxed">{data.description}</div></div>
+      <div><span className="text-[10px] font-black text-orange-500 uppercase tracking-widest mb-2 block">Hashtags</span><div className="flex flex-wrap gap-2">{data.hashtags?.map((h, i) => <span key={i} className="text-orange-600 bg-orange-50 px-2 py-1 rounded-md border border-orange-100 font-bold text-sm">#{h.replace('#','')}</span>)}</div></div>
     </div>
   );
 };
@@ -507,13 +507,13 @@ const MLResultCard = ({ data }: { data: MLData }) => {
     <div className="space-y-8">
       <div className="flex justify-between items-center border-b border-slate-100 pb-4">
          <h3 className="font-black text-slate-900 flex items-center gap-2"><Store className="w-5 h-5 text-yellow-500" /> SEO Platinum - Mercado Livre</h3>
-         <button onClick={copyToClipboard} className="flex items-center gap-1.5 text-sm font-bold text-slate-600 hover:text-yellow-600 transition-colors bg-white px-4 py-2 rounded-lg border border-slate-200 shadow-sm">
+         <button onClick={copyToClipboard} className="flex items-center gap-1.5 text-sm font-bold text-slate-600 hover:text-yellow-600 transition-colors bg-slate-50 px-4 py-2 rounded-lg border border-slate-200 shadow-sm">
            {copied ? <Check className="w-4 h-4 text-emerald-500" /> : <Copy className="w-4 h-4" />} {copied ? 'Copiado!' : 'Copiar Tudo'}
          </button>
       </div>
-      <div><span className="text-[10px] font-black text-orange-500 uppercase tracking-widest mb-2 block">Título Otimizado</span><div className="bg-slate-50 p-4 rounded-xl border font-bold text-slate-900">{data.title}</div></div>
+      <div><span className="text-[10px] font-black text-orange-500 uppercase tracking-widest mb-2 block">Título Otimizado</span><div className="bg-slate-50 p-4 rounded-xl border border-slate-100 font-bold text-slate-900">{data.title}</div></div>
       <div><span className="text-[10px] font-black text-orange-500 uppercase tracking-widest mb-2 block">Bullet Points</span><ul className="space-y-2">{data.bullets?.map((b, i) => <li key={i} className="text-sm text-slate-700 bg-orange-50/50 p-3 rounded-lg border border-orange-100 flex items-start gap-2 font-medium"> <Check className="w-4 h-4 text-orange-500 shrink-0 mt-0.5" /> {b}</li>)}</ul></div>
-      <div><span className="text-[10px] font-black text-orange-500 uppercase tracking-widest mb-2 block">Descrição Persuasiva</span><div className="bg-slate-50 p-4 rounded-xl border text-slate-600 text-sm whitespace-pre-wrap leading-relaxed">{data.description}</div></div>
+      <div><span className="text-[10px] font-black text-orange-500 uppercase tracking-widest mb-2 block">Descrição Persuasiva</span><div className="bg-slate-50 p-4 rounded-xl border border-slate-100 text-slate-600 text-sm whitespace-pre-wrap leading-relaxed">{data.description}</div></div>
     </div>
   );
 };
