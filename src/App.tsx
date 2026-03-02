@@ -134,9 +134,15 @@ const PlansModal = ({ isOpen, onClose }: { isOpen: boolean; onClose: () => void 
     window.open(`https://wa.me/5511999999999?text=${msg}`, '_blank');
   };
 
-  const prices = {
-    lite: billingCycle === 'monthly' ? '49,90' : '497,00',
-    pro: billingCycle === 'monthly' ? '97,00' : '967,00'
+  const content = {
+    lite: {
+      price: billingCycle === 'monthly' ? '49,90' : '497,00',
+      ads: billingCycle === 'monthly' ? '15 anúncios profissionais' : '180 anúncios profissionais'
+    },
+    pro: {
+      price: billingCycle === 'monthly' ? '97,00' : '967,00',
+      ads: billingCycle === 'monthly' ? '60 anúncios profissionais' : '720 anúncios profissionais'
+    }
   };
 
   return (
@@ -153,6 +159,7 @@ const PlansModal = ({ isOpen, onClose }: { isOpen: boolean; onClose: () => void 
           <h2 className="text-3xl font-[800] text-slate-900 mb-2">Aumente suas vendas agora</h2>
           <p className="text-slate-500 mb-8">Escolha o plano ideal para o seu volume de anúncios.</p>
 
+          {/* Alternador Mensal / Anual */}
           <div className="flex items-center justify-center gap-4 mb-10">
             <span className={`text-sm font-bold ${billingCycle === 'monthly' ? 'text-slate-900' : 'text-slate-400'}`}>Mensal</span>
             <button 
@@ -168,14 +175,15 @@ const PlansModal = ({ isOpen, onClose }: { isOpen: boolean; onClose: () => void 
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6 text-left">
+            {/* Plano Vendedor Lite */}
             <div className="border-2 border-slate-100 rounded-[20px] p-6 hover:border-orange-200 transition-all group">
               <span className="text-xs font-bold text-orange-500 uppercase tracking-wider">Vendedor Lite</span>
               <div className="flex items-baseline gap-1 mt-2 mb-4">
-                <span className="text-4xl font-black text-slate-900 text-nowrap">R$ {prices.lite}</span>
+                <span className="text-4xl font-black text-slate-900 text-nowrap">R$ {content.lite.price}</span>
                 <span className="text-slate-400 font-medium">{billingCycle === 'monthly' ? '/mês' : '/ano'}</span>
               </div>
               <ul className="space-y-3 mb-8">
-                <li className="flex items-center gap-2 text-sm text-slate-600"><Check className="w-4 h-4 text-emerald-500" /> 15 anúncios profissionais</li>
+                <li className="flex items-center gap-2 text-sm text-orange-600 font-bold"><Check className="w-4 h-4" /> {content.lite.ads}</li>
                 <li className="flex items-center gap-2 text-sm text-slate-600"><Check className="w-4 h-4 text-emerald-500" /> SEO Shopee e Mercado Livre</li>
                 <li className="flex items-center gap-2 text-sm text-slate-600"><Check className="w-4 h-4 text-emerald-500" /> Imagens em alta definição</li>
               </ul>
@@ -187,16 +195,18 @@ const PlansModal = ({ isOpen, onClose }: { isOpen: boolean; onClose: () => void 
               </button>
             </div>
 
+            {/* Plano Pro */}
             <div className="border-2 border-orange-500 rounded-[20px] p-6 bg-orange-50/30 relative">
               <div className="absolute -top-3 right-6 bg-orange-500 text-white text-[10px] font-bold px-3 py-1 rounded-full uppercase">Mais Vendido</div>
               <span className="text-xs font-bold text-orange-500 uppercase tracking-wider">Plano Pro</span>
               <div className="flex items-baseline gap-1 mt-2 mb-4">
-                <span className="text-4xl font-black text-slate-900 text-nowrap">R$ {prices.pro}</span>
+                <span className="text-4xl font-black text-slate-900 text-nowrap">R$ {content.pro.price}</span>
                 <span className="text-slate-400 font-medium">{billingCycle === 'monthly' ? '/mês' : '/ano'}</span>
               </div>
               <ul className="space-y-3 mb-8">
-                <li className="flex items-center gap-2 text-sm text-slate-700 font-semibold"><Check className="w-4 h-4 text-emerald-500" /> 60 anúncios profissionais</li>
-                <li className="flex items-center gap-2 text-sm text-slate-600"><Check className="w-4 h-4 text-emerald-500" /> SEO Premium com IA</li>
+                <li className="flex items-center gap-2 text-sm text-orange-600 font-bold"><Check className="w-4 h-4" /> {content.pro.ads}</li>
+                <li className="flex items-center gap-2 text-sm text-slate-700 font-semibold"><Check className="w-4 h-4 text-emerald-500" /> SEO Shopee e Mercado Livre</li>
+                <li className="flex items-center gap-2 text-sm text-slate-700 font-semibold"><Check className="w-4 h-4 text-emerald-500" /> Imagens em alta definição</li>
                 <li className="flex items-center gap-2 text-sm text-slate-600"><Check className="w-4 h-4 text-emerald-500" /> Suporte prioritário</li>
               </ul>
               <button 
