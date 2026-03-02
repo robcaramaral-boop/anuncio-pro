@@ -2,7 +2,6 @@ import Login from "./pages/Login";
 import React, { useState, useRef, useEffect } from 'react';
 import { supabase } from "./lib/supabaseClient";
 import { motion, AnimatePresence } from 'motion/react';
-// IMPORTANTE: Removemos a importação do @google/genai daqui!
 import JSZip from 'jszip';
 import { saveAs } from 'file-saver';
 import { get, set, del } from 'idb-keyval';
@@ -23,7 +22,6 @@ import {
   LogOut
 } from 'lucide-react';
 
-// Adicione este bloco aqui para substituir o Type do Google:
 enum Type {
   STRING = "STRING",
   ARRAY = "ARRAY",
@@ -75,7 +73,6 @@ interface LastListing {
   generatedData: GeneratedData;
 }
 
-// --- Helper: Compress Image to WebP ---
 const compressImageToWebP = (base64: string, quality = 0.8): Promise<string> => {
   return new Promise((resolve, reject) => {
     const img = new Image();
@@ -106,17 +103,13 @@ const Header = ({ handleLogout, credits }: { handleLogout: () => void, credits: 
         <span className="text-xl font-bold text-slate-900 tracking-tight">Anúncio<span className="text-orange-500">Pro</span></span>
       </div>
       <div className="flex items-center gap-4">
-        
-        {/* Mostrador de Créditos */}
         {credits !== null && (
           <div className="bg-orange-100 text-orange-700 px-3 py-1.5 rounded-full text-sm font-bold flex items-center gap-1.5 border border-orange-200">
             <Sparkles className="w-4 h-4" />
             {credits} {credits === 1 ? 'Crédito' : 'Créditos'}
           </div>
         )}
-
         <div className="w-px h-6 bg-slate-200 hidden sm:block"></div>
-
         <button 
           onClick={handleLogout}
           className="flex items-center gap-2 text-sm font-medium text-slate-500 hover:text-red-600 transition-colors"
@@ -130,14 +123,20 @@ const Header = ({ handleLogout, credits }: { handleLogout: () => void, credits: 
   </header>
 );
 
-// Componente do Modal de Planos
 const PlansModal = ({ isOpen, onClose }: { isOpen: boolean; onClose: () => void }) => {
+  const [billingCycle, setBillingCycle] = useState<'monthly' | 'yearly'>('monthly');
+
   if (!isOpen) return null;
 
   const handleSubscribe = (plano: string) => {
-    const msg = encodeURIComponent(`Olá! Gostaria de assinar o plano ${plano} do AnúncioPro.`);
-    // Substitua pelo seu número real abaixo
+    const periodo = billingCycle === 'monthly' ? 'Mensal' : 'Anual';
+    const msg = encodeURIComponent(`Olá! Gostaria de assinar o plano ${plano} (${periodo}) do AnúncioPro.`);
     window.open(`https://wa.me/5511999999999?text=${msg}`, '_blank');
+  };
+
+  const prices = {
+    lite: billingCycle === 'monthly' ? '49,90' : '497,00',
+    pro: billingCycle === 'monthly' ? '97,00' : '967,00'
   };
 
   return (
@@ -151,21 +150,34 @@ const PlansModal = ({ isOpen, onClose }: { isOpen: boolean; onClose: () => void 
           <div className="bg-orange-100 text-orange-600 w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-6">
             <Sparkles className="w-8 h-8" />
           </div>
-          <h2 className="text-3xl font-[800] text-slate-900 mb-2">Você atingiu o limite de testes gratuitos</h2>
-          <p className="text-slate-500 mb-10">Escolha o plano ideal para escalar suas vendas nos marketplaces.</p>
+          <h2 className="text-3xl font-[800] text-slate-900 mb-2">Aumente suas vendas agora</h2>
+          <p className="text-slate-500 mb-8">Escolha o plano ideal para o seu volume de anúncios.</p>
+
+          <div className="flex items-center justify-center gap-4 mb-10">
+            <span className={`text-sm font-bold ${billingCycle === 'monthly' ? 'text-slate-900' : 'text-slate-400'}`}>Mensal</span>
+            <button 
+              onClick={() => setBillingCycle(billingCycle === 'monthly' ? 'yearly' : 'monthly')}
+              className="w-14 h-7 bg-slate-200 rounded-full relative p-1 transition-colors"
+            >
+              <div className={`w-5 h-5 bg-orange-500 rounded-full transition-transform ${billingCycle === 'yearly' ? 'translate-x-7' : 'translate-x-0'}`} />
+            </button>
+            <div className="flex items-center gap-2">
+              <span className={`text-sm font-bold ${billingCycle === 'yearly' ? 'text-slate-900' : 'text-slate-400'}`}>Anual</span>
+              <span className="bg-emerald-100 text-emerald-600 text-[10px] font-black px-2 py-0.5 rounded-full uppercase italic">2 Meses Grátis</span>
+            </div>
+          </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6 text-left">
-            {/* Plano Vendedor Lite */}
             <div className="border-2 border-slate-100 rounded-[20px] p-6 hover:border-orange-200 transition-all group">
               <span className="text-xs font-bold text-orange-500 uppercase tracking-wider">Vendedor Lite</span>
               <div className="flex items-baseline gap-1 mt-2 mb-4">
-                <span className="text-4xl font-black text-slate-900">R$ 49,90</span>
-                <span className="text-slate-400 font-medium">/mês</span>
+                <span className="text-4xl font-black text-slate-900 text-nowrap">R$ {prices.lite}</span>
+                <span className="text-slate-400 font-medium">{billingCycle === 'monthly' ? '/mês' : '/ano'}</span>
               </div>
               <ul className="space-y-3 mb-8">
                 <li className="flex items-center gap-2 text-sm text-slate-600"><Check className="w-4 h-4 text-emerald-500" /> 15 anúncios profissionais</li>
                 <li className="flex items-center gap-2 text-sm text-slate-600"><Check className="w-4 h-4 text-emerald-500" /> SEO Shopee e Mercado Livre</li>
-                <li className="flex items-center gap-2 text-sm text-slate-600"><Check className="w-4 h-4 text-emerald-500" /> Imagens em alta definição com IA</li>
+                <li className="flex items-center gap-2 text-sm text-slate-600"><Check className="w-4 h-4 text-emerald-500" /> Imagens em alta definição</li>
               </ul>
               <button 
                 onClick={() => handleSubscribe('Vendedor Lite')}
@@ -175,13 +187,12 @@ const PlansModal = ({ isOpen, onClose }: { isOpen: boolean; onClose: () => void 
               </button>
             </div>
 
-            {/* Plano Pro */}
             <div className="border-2 border-orange-500 rounded-[20px] p-6 bg-orange-50/30 relative">
               <div className="absolute -top-3 right-6 bg-orange-500 text-white text-[10px] font-bold px-3 py-1 rounded-full uppercase">Mais Vendido</div>
               <span className="text-xs font-bold text-orange-500 uppercase tracking-wider">Plano Pro</span>
               <div className="flex items-baseline gap-1 mt-2 mb-4">
-                <span className="text-4xl font-black text-slate-900">R$ 97,00</span>
-                <span className="text-slate-400 font-medium">/mês</span>
+                <span className="text-4xl font-black text-slate-900 text-nowrap">R$ {prices.pro}</span>
+                <span className="text-slate-400 font-medium">{billingCycle === 'monthly' ? '/mês' : '/ano'}</span>
               </div>
               <ul className="space-y-3 mb-8">
                 <li className="flex items-center gap-2 text-sm text-slate-700 font-semibold"><Check className="w-4 h-4 text-emerald-500" /> 60 anúncios profissionais</li>
@@ -196,7 +207,6 @@ const PlansModal = ({ isOpen, onClose }: { isOpen: boolean; onClose: () => void 
               </button>
             </div>
           </div>
-
           <button onClick={onClose} className="mt-8 text-sm text-slate-400 hover:text-slate-600 font-medium transition-colors">
             Talvez mais tarde
           </button>
@@ -207,12 +217,10 @@ const PlansModal = ({ isOpen, onClose }: { isOpen: boolean; onClose: () => void 
 };
 
 export default function App() { 
-  // --- 1. HOOKS E ESTADOS ---
   const [session, setSession] = useState<any>(null); 
   const [isInitializing, setIsInitializing] = useState(true); 
   const [credits, setCredits] = useState<number | null>(null);
-  const [showPlansModal, setShowPlansModal] = useState(false); // Novo estado para o Modal
-
+  const [showPlansModal, setShowPlansModal] = useState(false);
   const [step, setStep] = useState<'input' | 'processing' | 'result'>('input');
   const [formData, setFormData] = useState<FormData>({ productName: '', marketplace: 'shopee', image: null });
   const [adProject, setAdProject] = useState<AdProject>({ productName: '', originalImage: null, generatedImages: [], shopeeText: null, mlText: null });
@@ -222,31 +230,25 @@ export default function App() {
   const [hasLastListing, setHasLastListing] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  // --- 2. EFEITOS (Sessão e Créditos) ---
   useEffect(() => {
     supabase.auth.getSession().then(({ data }) => {
       setSession(data.session);
       setIsInitializing(false);
     });
-
     const { data: listener } = supabase.auth.onAuthStateChange((_event, session) => {
       setSession(session);
       setIsInitializing(false);
     });
-
     return () => { listener.subscription.unsubscribe(); };
   }, []);
 
   useEffect(() => {
     const loadCredits = async () => {
       if (!session?.user?.id) return;
-      const { data, error } = await supabase
-        .from("profiles")
-        .select("credits")
-        .eq("id", session.user.id)
-        .single();
+      const { data } = await supabase.from("profiles").select("credits").eq("id", session.user.id).single();
       if (data) {
         setCredits(data.credits);
+        if (data.credits <= 0) setShowPlansModal(true);
       }
     };
     loadCredits();
@@ -256,47 +258,26 @@ export default function App() {
     const checkLastListing = async () => {
       try {
         const listing = await get<LastListing>('last_listing');
-        if (listing) {
-          const SEVEN_DAYS = 7 * 24 * 60 * 60 * 1000;
-          if (Date.now() - listing.timestamp < SEVEN_DAYS) {
-            setHasLastListing(true);
-          } else {
-            await del('last_listing');
-          }
+        if (listing && (Date.now() - listing.timestamp < 7 * 24 * 60 * 60 * 1000)) {
+          setHasLastListing(true);
+        } else {
+          await del('last_listing');
         }
-      } catch (e) { console.error('Error checking last listing:', e); }
+      } catch (e) { console.error(e); }
     };
     checkLastListing();
   }, []);
 
-  // --- 3. TELAS DE CARREGAMENTO E LOGIN ---
-  if (isInitializing) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-[#F7F8FA]">
-        <Loader2 className="w-8 h-8 animate-spin text-orange-500" />
-      </div>
-    );
-  }
-
-  if (!session) {
-    return <Login />;
-  }
-
-  // --- 4. FUNÇÕES DO APP ---
-  const handleLogout = async () => {
-    await supabase.auth.signOut();
-  };
+  const handleLogout = async () => { await supabase.auth.signOut(); };
 
   const loadLastListing = async () => {
-    try {
-      const listing = await get<LastListing>('last_listing');
-      if (listing) {
-        setFormData(listing.formData);
-        setAdProject(listing.adProject);
-        setGeneratedData(listing.generatedData);
-        setStep('result');
-      }
-    } catch (e) { console.error('Error loading last listing:', e); }
+    const listing = await get<LastListing>('last_listing');
+    if (listing) {
+      setFormData(listing.formData);
+      setAdProject(listing.adProject);
+      setGeneratedData(listing.generatedData);
+      setStep('result');
+    }
   };
 
   const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -311,7 +292,7 @@ export default function App() {
   const handleDrop = (e: React.DragEvent) => {
     e.preventDefault();
     const file = e.dataTransfer.files?.[0];
-    if (file && file.type.startsWith('image/')) {
+    if (file?.type.startsWith('image/')) {
       const reader = new FileReader();
       reader.onloadend = () => { setFormData({ ...formData, image: reader.result as string }); };
       reader.readAsDataURL(file);
@@ -319,20 +300,13 @@ export default function App() {
   };
 
   const callSupabaseFunction = async (bodyData: any) => {
-    const { data, error } = await supabase.functions.invoke('gerar-anuncio', {
-      body: bodyData
-    });
-    if (error) {
-      throw new Error(`Erro no servidor: ${error.message}`);
-    }
-    if (data.error) {
-       throw new Error(`Erro da IA: ${data.error}`);
-    }
+    const { data, error } = await supabase.functions.invoke('gerar-anuncio', { body: bodyData });
+    if (error) throw new Error(error.message);
+    if (data.error) throw new Error(data.error);
     return data;
   }
 
   const generateAIContent = async () => {
-    // ATUALIZADO: Abre o modal se não tiver créditos
     if (credits === null || credits <= 0) {
       setShowPlansModal(true);
       return;
@@ -343,551 +317,168 @@ export default function App() {
       setStep('processing');
 
       const safeGenerateTextJSON = async (prompt: string, schema: any) => {
-         const data = await callSupabaseFunction({
-            action: 'generateText',
-            prompt: prompt,
-            schema: schema
-         });
-         
+         const data = await callSupabaseFunction({ action: 'generateText', prompt, schema });
          let text = data.text || '{}';
-         const start = text.indexOf('{');
-         const end = text.lastIndexOf('}');
-         if (start === -1 || end === -1) throw new Error("No JSON object found");
-         let jsonStr = text.substring(start, end + 1);
-         jsonStr = jsonStr.replace(/[\u0000-\u001F]+/g, " ");
+         const start = text.indexOf('{'), end = text.lastIndexOf('}');
+         let jsonStr = text.substring(start, end + 1).replace(/[\u0000-\u001F]+/g, " ");
          return JSON.parse(jsonStr);
       };
 
-      let isNewProject = false;
-      if (formData.productName !== adProject.productName || formData.image !== adProject.originalImage) {
-        isNewProject = true;
-      }
-
+      let isNewProject = (formData.productName !== adProject.productName || formData.image !== adProject.originalImage);
       let currentImages = isNewProject ? [] : adProject.generatedImages;
-      let currentShopeeText = isNewProject ? null : adProject.shopeeText;
-      let currentMlText = isNewProject ? null : adProject.mlText;
-      let currentTextData = formData.marketplace === 'shopee' ? currentShopeeText : currentMlText;
+      let currentTextData = formData.marketplace === 'shopee' ? adProject.shopeeText : adProject.mlText;
 
       if (!currentTextData) {
         if (formData.marketplace === 'shopee') {
-          setLoadingMessage('Criando copy e SEO otimizado para Shopee...');
-          const seoPrompt = `Você é um Especialista em SEO para Shopee. Diferente do Mercado Livre (que é clean), a Shopee permite títulos mais longos, descrições com emojis e uso pesado de Hashtags.
-ESTRUTURA DO TÍTULO: [Produto Principal] + [Características/Adjetivos] + [Benefício] + [Modelos Compatíveis] + [Tags Extras]. Use até 100 caracteres. Capitalize As Primeiras Letras.
-O QUE VOCÊ DEVE ENTREGAR:
-1. Título Otimizado
-2. Palavras-Chave (Tags)
-3. Sugestão de Capa (Estilo Shopee com selo ENVIO DO BRASIL ou PRONTA ENTREGA)
-4. Texto da Descrição (Headline > Benefícios > Especificações > O que vem na caixa. Use Emojis)
-5. Hashtags (15 a 20 hashtags)
-Produto: ${formData.productName}
-Retorne SOMENTE um JSON válido. Não inclua texto fora do JSON.`;
-
+          setLoadingMessage('Criando SEO para Shopee...');
           const seoSchema = {
             type: Type.OBJECT,
-            properties: {
-              title: { type: Type.STRING },
-              keywords: { type: Type.ARRAY, items: { type: Type.STRING } },
-              coverSuggestion: { type: Type.STRING },
-              description: { type: Type.STRING },
-              hashtags: { type: Type.ARRAY, items: { type: Type.STRING } }
-            },
+            properties: { title: { type: Type.STRING }, keywords: { type: Type.ARRAY, items: { type: Type.STRING } }, coverSuggestion: { type: Type.STRING }, description: { type: Type.STRING }, hashtags: { type: Type.ARRAY, items: { type: Type.STRING } } },
             required: ["title", "keywords", "coverSuggestion", "description", "hashtags"]
           };
-          currentTextData = await safeGenerateTextJSON(seoPrompt, seoSchema);
+          currentTextData = await safeGenerateTextJSON(`Especialista SEO Shopee para: ${formData.productName}`, seoSchema);
         } else {
-          setLoadingMessage('Criando Meta Dados (Título, Bullets, Tags) para Mercado Livre...');
-          const mlMetaPrompt = `Você é um Especialista Sênior em E-commerce, focado exclusivamente no algoritmo do Mercado Livre (Platinum).
-ESTRUTURA DO TÍTULO: [Produto/Palavra-chave] + [Atributo Principal] + [Benefício] + [Modelo]. Máximo de 60 caracteres.
-O QUE VOCÊ DEVE ENTREGAR:
-1. Título Otimizado (Máx 60 chars)
-2. 5 Bullet Points de benefícios
-3. 10 a 15 Tags (Palavras-chave)
-Produto: ${formData.productName}
-Retorne SOMENTE um JSON válido. Não inclua texto fora do JSON.`;
-
-          const mlMetaSchema = {
+          setLoadingMessage('Criando SEO para Mercado Livre...');
+          const mlSchema = {
             type: Type.OBJECT,
-            properties: {
-              title: { type: Type.STRING },
-              bullets: { type: Type.ARRAY, items: { type: Type.STRING } },
-              tags: { type: Type.ARRAY, items: { type: Type.STRING } }
-            },
-            required: ["title", "bullets", "tags"]
+            properties: { title: { type: Type.STRING }, bullets: { type: Type.ARRAY, items: { type: Type.STRING } }, tags: { type: Type.ARRAY, items: { type: Type.STRING } }, description: { type: Type.STRING } },
+            required: ["title", "bullets", "tags", "description"]
           };
-          const metaData = await safeGenerateTextJSON(mlMetaPrompt, mlMetaSchema);
-
-          setLoadingMessage('Criando Descrição Otimizada para Mercado Livre...');
-          const mlDescPrompt = `Você é um Especialista Sênior em E-commerce, focado exclusivamente no algoritmo do Mercado Livre (Platinum).
-Crie uma descrição persuasiva para o produto: ${formData.productName}.
-A descrição deve ter entre 900 e 1200 caracteres.
-ESTRUTURA DA DESCRIÇÃO: Headline, Benefícios, O que vem na caixa, Ficha técnica, FAQ, SEO (palavra-chave 6x), Aviso em Negrito (ataque preventivo).
-Retorne SOMENTE um JSON válido. Não inclua texto fora do JSON.`;
-
-          const mlDescSchema = {
-            type: Type.OBJECT,
-            properties: { description: { type: Type.STRING } },
-            required: ["description"]
-          };
-          const descData = await safeGenerateTextJSON(mlDescPrompt, mlDescSchema);
-
-          currentTextData = {
-            title: metaData.title,
-            bullets: metaData.bullets,
-            tags: metaData.tags,
-            description: descData.description
-          };
+          currentTextData = await safeGenerateTextJSON(`Especialista SEO ML para: ${formData.productName}`, mlSchema);
         }
       }
 
       if (!currentImages || currentImages.length === 0) {
-        setLoadingMessage('Criando prompts para geração de imagens...');
-        
-        let promptsPrompt = '';
-        if (formData.marketplace === 'shopee') {
-          promptsPrompt = `Crie 5 Prompts detalhados (em inglês) para geração de imagens do produto: ${formData.productName}. 
-Os prompts devem instruir a manter o produto exato da imagem de referência. 
-Inclua: 
-1. Hero Cover (fundo branco/sólido, 45 graus, high key lighting, 8k)
-2. Lifestyle/Uso
-3. Detalhe/Macro
-4. Unboxing/Acessórios
-5. Instagramável.
-Retorne APENAS um JSON válido com a chave "imagePrompts" contendo um array de 5 strings. Não inclua markdown ou texto extra.`;
-        } else {
-          promptsPrompt = `Crie 5 Prompts detalhados (em inglês) para geração de imagens do produto: ${formData.productName}. 
-Os prompts devem instruir a manter o produto exato da imagem de referência. 
-Inclua: 
-1. Hero Cover (fundo branco, high key lighting, 8k)
-2. Detalhe/Macro
-3. Lifestyle/Uso
-4. Dimensões/Escala
-5. Argumento Visual/Benefício.
-Retorne APENAS um JSON válido com a chave "imagePrompts" contendo um array de 5 strings. Não inclua markdown ou texto extra.`;
-        }
-
-        const promptsSchema = {
-          type: Type.OBJECT,
-          properties: { imagePrompts: { type: Type.ARRAY, items: { type: Type.STRING } } },
-          required: ["imagePrompts"]
-        };
-
-        const promptsData = await safeGenerateTextJSON(promptsPrompt, promptsSchema);
-
-        setLoadingMessage('Gerando 5 variações de imagens seguras via servidor...');
+        setLoadingMessage('Gerando imagens profissionais...');
+        const promptsData = await safeGenerateTextJSON(`Create 5 image prompts for: ${formData.productName}`, { type: Type.OBJECT, properties: { imagePrompts: { type: Type.ARRAY, items: { type: Type.STRING } } }, required: ["imagePrompts"] });
         
         const base64Data = formData.image!.split(',')[1];
         const mimeType = formData.image!.match(/data:(.*?);/)?.[1] || 'image/jpeg';
 
-        const imagePrompts = promptsData?.imagePrompts && promptsData.imagePrompts.length >= 5 
-          ? promptsData.imagePrompts.slice(0, 5) 
-          : [
-            "Keep the exact same product from the reference image. The product on a white or vibrant solid color background, perfect studio lighting, soft shading, 45 degree angle. High key lighting, commercial photography, 8k.",
-            "Keep the exact same product from the reference image. The product being used by a happy person in a real-life context. Lifestyle photography.",
-            "Keep the exact same product from the reference image. Extreme close-up on the texture or technological differential of the product. Macro photography, depth of field.",
-            "Keep the exact same product from the reference image. The product out of the box with all accessories next to it, organized (Knolling style).",
-            "Keep the exact same product from the reference image. The product on a beautiful table, with a blurred background decoration, looking like an influencer post."
-          ];
-
-        const imagePromises = imagePrompts.map(async (prompt: string, index: number) => {
-          try {
-            const data = await callSupabaseFunction({
-              action: 'generateImage',
-              prompt: prompt,
-              imageBase64: base64Data,
-              mimeType: mimeType
-            });
-            
-            for (const part of data.candidates?.[0]?.content?.parts || []) {
-              if (part.inlineData) {
-                return `data:image/png;base64,${part.inlineData.data}`;
-              }
-            }
-            return null;
-          } catch (err) {
-            console.error(`Error generating image ${index + 1}:`, err);
-            return null;
-          }
-        });
-
-        currentImages = await Promise.all(imagePromises);
+        currentImages = await Promise.all(promptsData.imagePrompts.slice(0, 5).map(async (prompt: string) => {
+          const data = await callSupabaseFunction({ action: 'generateImage', prompt, imageBase64: base64Data, mimeType });
+          return data.candidates?.[0]?.content?.parts[0]?.inlineData ? `data:image/png;base64,${data.candidates[0].content.parts[0].inlineData.data}` : null;
+        }));
       }
 
-      const newAdProject = {
-        productName: formData.productName,
-        originalImage: formData.image,
-        generatedImages: currentImages,
-        shopeeText: formData.marketplace === 'shopee' ? (currentTextData as ShopeeData) : currentShopeeText,
-        mlText: formData.marketplace === 'ml' ? (currentTextData as MLData) : currentMlText,
-      };
+      // --- SALVANDO NO HISTÓRICO DO SUPABASE ---
+      try {
+        await supabase.from('anuncios').insert([{
+          user_id: session.user.id,
+          product_name: formData.productName,
+          marketplace: formData.marketplace,
+          shopee_text: formData.marketplace === 'shopee' ? currentTextData : null,
+          ml_text: formData.marketplace === 'ml' ? currentTextData : null,
+          images: currentImages.filter(img => img !== null)
+        }]);
+      } catch (dbError) { console.error("Erro ao salvar no banco:", dbError); }
 
-      const newGeneratedData = {
-        marketplace: formData.marketplace,
-        images: currentImages,
-        textData: currentTextData!
-      };
+      const newAdProject = { ...adProject, productName: formData.productName, originalImage: formData.image, generatedImages: currentImages, shopeeText: formData.marketplace === 'shopee' ? currentTextData : adProject.shopeeText, mlText: formData.marketplace === 'ml' ? currentTextData : adProject.mlText };
+      const newGeneratedData = { marketplace: formData.marketplace, images: currentImages, textData: currentTextData! };
 
       setAdProject(newAdProject);
       setGeneratedData(newGeneratedData);
       
-      try {
-        const compressedImages = await Promise.all(
-          currentImages.map(async (img) => img ? await compressImageToWebP(img, 0.8) : null)
-        );
-        const compressedOriginal = formData.image ? await compressImageToWebP(formData.image, 0.8) : null;
+      const compressedImages = await Promise.all(currentImages.map(async (img) => img ? await compressImageToWebP(img, 0.8) : null));
+      const compressedOriginal = formData.image ? await compressImageToWebP(formData.image, 0.8) : null;
+      await set('last_listing', { timestamp: Date.now(), formData: { ...formData, image: compressedOriginal }, adProject: { ...newAdProject, originalImage: compressedOriginal, generatedImages: compressedImages }, generatedData: { ...newGeneratedData, images: compressedImages } });
+      setHasLastListing(true);
 
-        const listing: LastListing = {
-          timestamp: Date.now(),
-          formData: { ...formData, image: compressedOriginal },
-          adProject: { ...newAdProject, originalImage: compressedOriginal, generatedImages: compressedImages },
-          generatedData: { ...newGeneratedData, images: compressedImages }
-        };
-
-        await set('last_listing', listing);
-        setHasLastListing(true);
-      } catch (e) {
-        console.error('Error saving last listing:', e);
-      }
-
-      if (session?.user?.id) {
-        const newCredits = credits - 1;
-        await supabase
-          .from("profiles")
-          .update({ credits: newCredits })
-          .eq("id", session.user.id);
-        
-        setCredits(newCredits); 
-      }
-
+      const newCredits = credits - 1;
+      await supabase.from("profiles").update({ credits: newCredits }).eq("id", session.user.id);
+      setCredits(newCredits);
       setStep('result');
-
-    } catch (err: any) {
-      console.error(err);
-      setError(err.message || 'Ocorreu um erro ao gerar o anúncio.');
-      setStep('input');
-    }
+    } catch (err: any) { setError(err.message); setStep('input'); }
   };
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!formData.productName || !formData.image) {
-      alert('Por favor, preencha o nome do produto e adicione uma imagem.');
-      return;
-    }
+    if (!formData.productName || !formData.image) return alert('Preencha os campos obrigatórios.');
     generateAIContent();
   };
 
-  const resetApp = () => {
-    setStep('input');
-    setFormData({ productName: '', marketplace: 'shopee', image: null });
-    setAdProject({ productName: '', originalImage: null, generatedImages: [], shopeeText: null, mlText: null });
-    setGeneratedData(null);
-    setError(null);
-  };
+  const resetApp = () => { setStep('input'); setFormData({ productName: '', marketplace: 'shopee', image: null }); setGeneratedData(null); };
 
   const downloadZip = async () => {
     if (!generatedData) return;
     const zip = new JSZip();
-    
-    let seoText = '';
-    if (generatedData.marketplace === 'shopee') {
-      const data = generatedData.textData as ShopeeData;
-      seoText = `TÍTULO:\n${data.title}\n\nSUGESTÃO DE CAPA:\n${data.coverSuggestion}\n\nDESCRIÇÃO:\n${data.description}\n\nHASHTAGS:\n${data.hashtags.join(' ')}\n\nPALAVRAS-CHAVE:\n${data.keywords.join(', ')}`;
-    } else {
-      const data = generatedData.textData as MLData;
-      seoText = `TÍTULO:\n${data.title}\n\nBULLETS:\n${data.bullets.map(b => `- ${b}`).join('\n')}\n\nDESCRIÇÃO:\n${data.description}\n\nPALAVRAS-CHAVE:\n${data.tags.join(', ')}`;
-    }
-    zip.file(`SEO_${generatedData.marketplace.toUpperCase()}.txt`, seoText);
-
-    const imageNames = ['1_Capa_Hero.png', '2_Lifestyle.png', '3_Detalhe.png', '4_Unboxing.png', '5_Instagramavel.png'];
-
-    generatedData.images.forEach((imgData, index) => {
-      if (imgData) {
-        const base64Data = imgData.split(',')[1];
-        if (base64Data) { zip.file(imageNames[index], base64Data, { base64: true }); }
-      }
-    });
-
-    const content = await zip.generateAsync({ type: 'blob' });
-    saveAs(content, `AnuncioPro_${formData.productName.replace(/[^a-z0-9]/gi, '_').toLowerCase()}.zip`);
+    const data = generatedData.textData as any;
+    zip.file(`SEO.txt`, `TÍTULO: ${data.title}\nDESCRIÇÃO: ${data.description}`);
+    generatedData.images.forEach((img, i) => img && zip.file(`imagem_${i+1}.png`, img.split(',')[1], { base64: true }));
+    saveAs(await zip.generateAsync({ type: 'blob' }), `AnuncioPro_${formData.productName}.zip`);
   };
 
   return (
-    <div className="min-h-screen bg-[#F7F8FA] font-sans text-slate-900 selection:bg-orange-100 selection:text-orange-900">
+    <div className="min-h-screen bg-[#F7F8FA] font-sans text-slate-900">
       <Header handleLogout={handleLogout} credits={credits} />
-
-      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12 sm:py-16">
+      <main className="max-w-7xl mx-auto px-4 py-12">
         <AnimatePresence mode="wait">
-          
           {step === 'input' && (
-            <motion.div key="input" initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -20 }} className="max-w-4xl mx-auto">
+            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="max-w-4xl mx-auto">
               <div className="text-center mb-12">
-                <h1 className="text-[44px] sm:text-[48px] font-[800] text-[#0F172A] tracking-tight leading-tight mb-4">
-                  Crie anúncios profissionais em anúncios que vendem
-                </h1>
-                <p className="text-[18px] text-[#64748B] font-light max-w-2xl mx-auto">
-                  SEO + Imagens otimizadas para Shopee e Mercado Livre em segundos.
-                </p>
+                <h1 className="text-4xl font-black text-slate-900 mb-4">Crie anúncios que vendem</h1>
+                <p className="text-slate-500">SEO + Imagens otimizadas em segundos.</p>
               </div>
-
-              {error && (
-                <div className="mb-8 p-4 bg-red-50 border border-red-200 rounded-xl flex items-start gap-3 text-red-700">
-                  <AlertCircle className="w-5 h-5 shrink-0 mt-0.5" />
-                  <p className="text-sm font-medium">{error}</p>
-                </div>
-              )}
-
-              <div className="bg-white rounded-[16px] border border-[#E6E8EE] shadow-[0_6px_18px_rgba(15,23,42,0.06)] overflow-hidden">
-                <form onSubmit={handleSubmit} className="p-6 sm:p-8">
-                  <div className="grid grid-cols-1 lg:grid-cols-2 gap-10">
-                    
-                    <div className="space-y-8">
-                      <div>
-                        <label className="flex items-center gap-2 text-sm font-semibold text-slate-700 mb-2">
-                          <Package className="w-4 h-4 text-slate-500" />
-                          Nome do Produto *
-                        </label>
-                        <input
-                          type="text" required placeholder="Ex: Smartwatch D20 Pro"
-                          className="w-full px-4 h-[50px] rounded-[12px] border border-slate-300 focus:ring-2 focus:ring-orange-500 focus:border-orange-500 outline-none transition-all"
-                          value={formData.productName} onChange={e => setFormData({...formData, productName: e.target.value})}
-                        />
-                      </div>
-
-                      <div>
-                        <label className="flex items-center gap-2 text-sm font-semibold text-slate-700 mb-3">
-                          <Store className="w-4 h-4 text-slate-500" />
-                          Marketplace selecionado
-                        </label>
-                        <div className="flex flex-col sm:flex-row gap-3">
-                          {(['shopee', 'ml'] as const).map((m) => {
-                            const isActive = formData.marketplace === m;
-                            return (
-                              <label key={m} className={`flex-1 flex items-center justify-center px-4 h-[50px] rounded-[12px] border cursor-pointer transition-all ${isActive ? 'bg-orange-500 border-orange-500 text-white shadow-sm' : 'bg-white border-slate-200 text-slate-600 hover:border-slate-300'}`}>
-                                <input type="radio" name="marketplace" value={m} checked={isActive} onChange={() => setFormData({...formData, marketplace: m})} className="sr-only" />
-                                <div className="flex items-center gap-2">
-                                  {isActive && <div className="w-2 h-2 rounded-full bg-white" />}
-                                  {isActive && <Check className="w-4 h-4" />}
-                                  {!isActive && m === 'shopee' && <ShoppingBag className="w-4 h-4" />}
-                                  {!isActive && m === 'ml' && <Store className="w-4 h-4" />}
-                                  <span className="font-medium">{m === 'shopee' ? 'Shopee' : 'Mercado Livre'}</span>
-                                </div>
-                              </label>
-                            );
-                          })}
-                        </div>
+              <div className="bg-white rounded-3xl border border-slate-200 shadow-sm p-8">
+                <form onSubmit={handleSubmit} className="space-y-8">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                    <div className="space-y-6">
+                      <label className="block text-sm font-bold">Nome do Produto *</label>
+                      <input type="text" className="w-full p-3 rounded-xl border" value={formData.productName} onChange={e => setFormData({...formData, productName: e.target.value})} />
+                      <label className="block text-sm font-bold">Marketplace</label>
+                      <div className="flex gap-4">
+                        {['shopee', 'ml'].map(m => (
+                          <button key={m} type="button" onClick={() => setFormData({...formData, marketplace: m as Marketplace})} className={`flex-1 p-3 rounded-xl border ${formData.marketplace === m ? 'bg-orange-500 text-white' : ''}`}>
+                            {m === 'shopee' ? 'Shopee' : 'Mercado Livre'}
+                          </button>
+                        ))}
                       </div>
                     </div>
-
-                    <div className="flex flex-col">
-                      <label className="flex items-center gap-2 text-sm font-semibold text-slate-700 mb-1">
-                        <ImageIcon className="w-4 h-4 text-slate-500" />
-                        Foto Real do Produto *
-                      </label>
-                      <p className="text-xs text-slate-500 mb-3">Tire uma foto clara do produto. Usaremos como referência para gerar as 5 variações.</p>
-                      
-                      <div 
-                        className={`flex-1 min-h-[240px] border-2 border-dashed rounded-[16px] flex flex-col items-center justify-center p-6 transition-all relative overflow-hidden ${formData.image ? 'border-orange-500 bg-orange-50/50' : 'border-slate-300 hover:border-orange-400 hover:bg-slate-50'}`}
-                        onDragOver={(e) => e.preventDefault()} onDrop={handleDrop} onClick={() => !formData.image && fileInputRef.current?.click()}
-                      >
-                        <input type="file" ref={fileInputRef} className="hidden" accept="image/*" onChange={handleImageUpload} />
-                        
-                        {formData.image ? (
-                          <div className="absolute inset-0 w-full h-full group">
-                            <img src={formData.image} alt="Preview" className="w-full h-full object-contain p-4" />
-                            <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
-                              <button type="button" onClick={(e) => { e.stopPropagation(); setFormData({...formData, image: null}); }} className="bg-white text-slate-900 px-4 py-2 rounded-lg font-medium text-sm hover:bg-slate-100">
-                                Trocar foto
-                              </button>
-                            </div>
-                          </div>
-                        ) : (
-                          <div className="text-center cursor-pointer">
-                            <div className="w-16 h-16 bg-orange-100 text-orange-500 rounded-full flex items-center justify-center mx-auto mb-4">
-                              <UploadCloud className="w-8 h-8" />
-                            </div>
-                            <p className="text-sm font-medium text-slate-700 mb-1">Clique ou arraste a foto aqui</p>
-                            <p className="text-xs text-slate-500">PNG, JPG até 10MB</p>
-                          </div>
-                        )}
-                      </div>
+                    <div className="border-2 border-dashed rounded-3xl p-8 flex flex-col items-center justify-center relative min-h-[250px]" onClick={() => !formData.image && fileInputRef.current?.click()}>
+                      <input type="file" ref={fileInputRef} className="hidden" onChange={handleImageUpload} />
+                      {formData.image ? <img src={formData.image} className="h-full object-contain" /> : <div className="text-center"><UploadCloud className="mx-auto mb-2" /> Carregar Foto</div>}
                     </div>
                   </div>
-
-                  <div className="mt-10 pt-8 border-t border-slate-100 flex flex-col sm:flex-row justify-end gap-4">
-                    {hasLastListing && (
-                      <button type="button" onClick={loadLastListing} className="w-full sm:w-auto bg-white border border-slate-300 hover:bg-slate-50 text-slate-700 px-8 h-[50px] rounded-[12px] font-bold text-[16px] shadow-sm transition-all flex items-center justify-center gap-2">
-                        <History className="w-5 h-5" /> Último Anúncio
-                      </button>
-                    )}
-                    <button type="submit" className="w-full sm:w-auto bg-orange-500 hover:bg-orange-600 text-white px-8 h-[50px] rounded-[12px] font-bold text-[16px] shadow-sm hover:shadow-md transition-all flex items-center justify-center gap-2">
-                      <Sparkles className="w-5 h-5" /> {error ? 'Tentar novamente' : 'Gerar Anúncio com IA'}
-                    </button>
+                  <div className="flex justify-end gap-4">
+                    {hasLastListing && <button type="button" onClick={loadLastListing} className="p-3 rounded-xl border flex gap-2"><History /> Último</button>}
+                    <button type="submit" className="bg-orange-500 text-white p-3 px-8 rounded-xl font-bold">Gerar Anúncio</button>
                   </div>
                 </form>
               </div>
             </motion.div>
           )}
-
           {step === 'processing' && (
-            <motion.div key="processing" initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 1.05 }} className="flex flex-col items-center justify-center py-20">
-              <div className="relative w-32 h-32 mb-8">
-                <div className="absolute inset-0 border-4 border-slate-100 rounded-full"></div>
-                <div className="absolute inset-0 border-4 border-orange-500 rounded-full border-t-transparent animate-spin"></div>
-                <div className="absolute inset-0 flex items-center justify-center">
-                  <Sparkles className="w-10 h-10 text-orange-500 animate-pulse" />
-                </div>
-              </div>
-              <h2 className="text-2xl font-bold text-slate-900 mb-4 text-center">Trabalhando no seu anúncio...</h2>
-              <p className="text-slate-600 font-medium flex items-center gap-2">
-                <Loader2 className="w-4 h-4 animate-spin text-orange-500" /> {loadingMessage}
-              </p>
-              <p className="text-xs text-slate-400 mt-4 max-w-xs text-center">Isso pode levar alguns segundos. Estamos gerando imagens em alta resolução.</p>
-            </motion.div>
+            <div className="text-center py-20">
+              <Loader2 className="w-12 h-12 animate-spin mx-auto text-orange-500 mb-4" />
+              <h2 className="text-xl font-bold">{loadingMessage}</h2>
+            </div>
           )}
-
           {step === 'result' && generatedData && (
-            <motion.div key="result" initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="max-w-6xl mx-auto">
-              <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between mb-10 gap-6">
-                <div>
-                  <h2 className="text-[32px] font-[800] text-[#0F172A] flex items-center gap-3 tracking-tight">
-                    <CheckCircle2 className="w-8 h-8 text-emerald-500" /> Anúncio Pronto!
-                  </h2>
-                  <p className="text-[#64748B] mt-2 text-[16px]">SEO e Imagens geradas com sucesso para {generatedData.marketplace === 'shopee' ? 'Shopee' : 'Mercado Livre'}.</p>
-                </div>
-                <div className="flex gap-3 w-full sm:w-auto flex-wrap justify-end">
-                  <button onClick={() => setStep('input')} className="px-6 h-[50px] rounded-[12px] border border-slate-300 bg-white text-slate-700 font-medium hover:bg-slate-50 transition-all text-center shadow-sm">
-                    Voltar
-                  </button>
-                  <button onClick={resetApp} className="px-6 h-[50px] rounded-[12px] border border-slate-300 bg-white text-slate-700 font-medium hover:bg-slate-50 transition-all text-center shadow-sm">
-                    Novo Produto
-                  </button>
-                  <button onClick={downloadZip} className="px-6 h-[50px] rounded-[12px] bg-orange-500 text-white font-bold hover:bg-orange-600 transition-all shadow-sm hover:shadow-md flex items-center justify-center gap-2">
-                    <Download className="w-5 h-5" /> Baixar Pacote
-                  </button>
+            <div className="max-w-6xl mx-auto space-y-8">
+              <div className="flex justify-between items-center">
+                <h2 className="text-2xl font-black">Anúncio Pronto!</h2>
+                <div className="flex gap-4">
+                  <button onClick={resetApp} className="p-3 rounded-xl border">Novo</button>
+                  <button onClick={downloadZip} className="bg-orange-500 text-white p-3 px-8 rounded-xl flex gap-2"><Download /> Baixar ZIP</button>
                 </div>
               </div>
-
-              <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
-                <div className="lg:col-span-5 space-y-6">
-                  <div className="bg-white rounded-[16px] border border-[#E6E8EE] shadow-[0_6px_18px_rgba(15,23,42,0.06)] overflow-hidden">
-                    <div className="p-5 border-b border-slate-100 bg-slate-50/50 flex items-center gap-2">
-                      <ImageIcon className="w-5 h-5 text-slate-500" />
-                      <h3 className="font-bold text-slate-800">Imagens Geradas (Nano Banana Pro)</h3>
-                    </div>
-                    <div className="p-6 space-y-4">
-                      <div className="relative aspect-square rounded-xl overflow-hidden border border-slate-200 bg-slate-100 group">
-                        {generatedData.images[0] ? (
-                          <img src={generatedData.images[0]} alt="Capa Hero" className="w-full h-full object-cover" />
-                        ) : (
-                          <div className="w-full h-full flex items-center justify-center text-slate-400 text-sm">Falha ao gerar</div>
-                        )}
-                        <div className="absolute top-2 left-2 bg-white/90 backdrop-blur px-2 py-1 rounded text-xs font-bold text-slate-700 shadow-sm">
-                          1. Capa Hero
-                        </div>
-                      </div>
-                      <div className="grid grid-cols-2 gap-4">
-                        {[
-                          { title: '2. Lifestyle', img: generatedData.images[1] },
-                          { title: '3. Detalhe/Zoom', img: generatedData.images[2] },
-                          { title: '4. Unboxing/Kit', img: generatedData.images[3] },
-                          { title: '5. Instagramável', img: generatedData.images[4] }
-                        ].map((item, idx) => (
-                          <div key={idx} className="relative aspect-square rounded-xl overflow-hidden border border-slate-200 bg-slate-100 group">
-                            {item.img ? (
-                              <img src={item.img} alt={item.title} className="w-full h-full object-cover" />
-                            ) : (
-                              <div className="w-full h-full flex items-center justify-center text-slate-400 text-xs text-center p-2">Falha</div>
-                            )}
-                            <div className="absolute top-2 left-2 bg-white/90 backdrop-blur px-2 py-1 rounded text-[10px] font-bold text-slate-700 shadow-sm">
-                              {item.title}
-                            </div>
-                          </div>
-                        ))}
-                      </div>
-                    </div>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                <div className="bg-white p-6 rounded-3xl border space-y-4">
+                  <h3 className="font-bold border-b pb-2">Imagens Geradas</h3>
+                  <div className="grid grid-cols-2 gap-4">
+                    {generatedData.images.map((img, i) => img && <img key={i} src={img} className="rounded-xl border" />)}
                   </div>
                 </div>
-
-                <div className="lg:col-span-7 space-y-6">
-                  {generatedData.marketplace === 'shopee' ? (
-                    <ShopeeResultCard data={generatedData.textData as ShopeeData} />
-                  ) : (
-                    <MLResultCard data={generatedData.textData as MLData} />
-                  )}
+                <div className="bg-white p-6 rounded-3xl border">
+                  <h3 className="font-bold border-b pb-2">SEO Otimizado</h3>
+                  <pre className="text-sm whitespace-pre-wrap mt-4">{JSON.stringify(generatedData.textData, null, 2)}</pre>
                 </div>
               </div>
-            </motion.div>
+            </div>
           )}
         </AnimatePresence>
       </main>
-
-      <PlansModal 
-        isOpen={showPlansModal} 
-        onClose={() => setShowPlansModal(false)} 
-      />
+      <PlansModal isOpen={showPlansModal} onClose={() => setShowPlansModal(false)} />
     </div>
   );
 }
-
-// --- Helper Components ---
-
-const ShopeeResultCard = ({ data }: { data: ShopeeData }) => {
-  const [copied, setCopied] = useState(false);
-  const copyToClipboard = () => {
-    const text = `TÍTULO:\n${data.title}\n\nDESCRIÇÃO:\n${data.description}\n\nHASHTAGS:\n${data.hashtags.join(' ')}\n\nPALAVRAS-CHAVE:\n${data.keywords.join(', ')}`;
-    navigator.clipboard.writeText(text);
-    setCopied(true);
-    setTimeout(() => setCopied(false), 2000);
-  };
-
-  return (
-    <div className="bg-white rounded-[16px] border border-[#E6E8EE] shadow-[0_6px_18px_rgba(15,23,42,0.06)] overflow-hidden">
-      <div className="p-5 border-b border-slate-100 bg-slate-50/50 flex items-center justify-between">
-        <div className="flex items-center gap-2">
-          <ShoppingBag className="w-5 h-5 text-orange-500" />
-          <h3 className="font-bold text-slate-800">SEO Especialista - Shopee</h3>
-        </div>
-        <button onClick={copyToClipboard} className="flex items-center gap-1.5 text-sm font-medium text-slate-600 hover:text-orange-600 transition-colors bg-white px-4 py-2 rounded-lg border border-slate-200 shadow-sm">
-          {copied ? <Check className="w-4 h-4 text-emerald-500" /> : <Copy className="w-4 h-4" />} {copied ? 'Copiado!' : 'Copiar Tudo'}
-        </button>
-      </div>
-      <div className="p-6 space-y-8">
-        <div><span className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-1 block">Título Otimizado ({data.title?.length || 0} chars)</span><div className="bg-slate-50 p-3 rounded-xl border border-slate-100 font-medium text-slate-900">{data.title}</div></div>
-        <div><span className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-1 block">Sugestão de Capa</span><div className="bg-orange-50 p-3 rounded-xl border border-orange-100 text-orange-800 text-sm font-medium flex items-start gap-2"><Sparkles className="w-4 h-4 shrink-0 mt-0.5" />{data.coverSuggestion}</div></div>
-        <div><span className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-1 block">Descrição Persuasiva</span><div className="bg-slate-50 p-4 rounded-xl border border-slate-100 text-slate-700 text-sm whitespace-pre-wrap leading-relaxed">{data.description}</div></div>
-        <div><span className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-1 block">Hashtags</span><div className="flex flex-wrap gap-2">{data.hashtags?.map((h, i) => (<span key={i} className="text-blue-600 text-sm font-medium">{h.startsWith('#') ? h : `#${h}`}</span>))}</div></div>
-        <div><span className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-1 block">Palavras-chave (Tags)</span><div className="flex flex-wrap gap-2">{data.keywords?.map((k, i) => (<span key={i} className="bg-slate-100 text-slate-600 border border-slate-200 px-2.5 py-1 rounded-md text-xs font-medium">{k}</span>))}</div></div>
-      </div>
-    </div>
-  );
-};
-
-const MLResultCard = ({ data }: { data: MLData }) => {
-  const [copied, setCopied] = useState(false);
-  const copyToClipboard = () => {
-    const text = `TÍTULO:\n${data.title}\n\nBULLETS:\n${data.bullets.map(b => `- ${b}`).join('\n')}\n\nDESCRIÇÃO:\n${data.description}\n\nPALAVRAS-CHAVE:\n${data.tags.join(', ')}`;
-    navigator.clipboard.writeText(text);
-    setCopied(true);
-    setTimeout(() => setCopied(false), 2000);
-  };
-
-  return (
-    <div className="bg-white rounded-[16px] border border-[#E6E8EE] shadow-[0_6px_18px_rgba(15,23,42,0.06)] overflow-hidden">
-      <div className="p-5 border-b border-slate-100 bg-slate-50/50 flex items-center justify-between">
-        <div className="flex items-center gap-2">
-          <Store className="w-5 h-5 text-yellow-500" />
-          <h3 className="font-bold text-slate-800">SEO Especialista Platinum - Mercado Livre</h3>
-        </div>
-        <button onClick={copyToClipboard} className="flex items-center gap-1.5 text-sm font-medium text-slate-600 hover:text-yellow-600 transition-colors bg-white px-4 py-2 rounded-lg border border-slate-200 shadow-sm">
-          {copied ? <Check className="w-4 h-4 text-emerald-500" /> : <Copy className="w-4 h-4" />} {copied ? 'Copiado!' : 'Copiar Tudo'}
-        </button>
-      </div>
-      <div className="p-6 space-y-8">
-        <div><span className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-1 block">Título Otimizado ({data.title?.length || 0} chars)</span><div className="bg-slate-50 p-3 rounded-xl border border-slate-100 font-medium text-slate-900">{data.title}</div>{(data.title?.length || 0) > 60 && (<p className="text-xs text-red-500 mt-1">Aviso: Título passou de 60 caracteres.</p>)}</div>
-        <div><span className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-1 block">Bullet Points</span><ul className="space-y-2">{data.bullets?.map((b, i) => (<li key={i} className="text-sm text-slate-700 bg-yellow-50/50 px-3 py-2 rounded-lg border border-yellow-100 flex items-start gap-2"><span className="font-bold text-yellow-600">•</span> {b}</li>))}</ul></div>
-        <div><span className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-1 block">Descrição Persuasiva</span><div className="bg-slate-50 p-4 rounded-xl border border-slate-100 text-slate-700 text-sm whitespace-pre-wrap leading-relaxed">{data.description}</div></div>
-        <div><span className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-1 block">Palavras-chave (Tags)</span><div className="flex flex-wrap gap-2">{data.tags?.map((k, i) => (<span key={i} className="bg-slate-100 text-slate-600 border border-slate-200 px-2.5 py-1 rounded-md text-xs font-medium">{k}</span>))}</div></div>
-      </div>
-    </div>
-  );
-};
