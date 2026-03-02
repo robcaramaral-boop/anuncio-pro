@@ -1,6 +1,8 @@
+import Login from "./pages/Login";
 import React, { useState, useRef, useEffect } from 'react';
+import { supabase } from "./lib/supabaseClient";
 import { motion, AnimatePresence } from 'motion/react';
-import { GoogleGenAI, Type } from '@google/genai';
+// IMPORTANTE: Removemos a importação do @google/genai daqui!
 import JSZip from 'jszip';
 import { saveAs } from 'file-saver';
 import { get, set, del } from 'idb-keyval';
@@ -17,8 +19,15 @@ import {
   Copy,
   Check,
   AlertCircle,
-  History
+  History,
+  LogOut
 } from 'lucide-react';
+// Adicione este bloco aqui para substituir o Type do Google:
+enum Type {
+  STRING = "STRING",
+  ARRAY = "ARRAY",
+  OBJECT = "OBJECT",
+}
 
 // --- Types ---
 type Marketplace = 'shopee' | 'ml';
@@ -86,7 +95,7 @@ const compressImageToWebP = (base64: string, quality = 0.8): Promise<string> => 
 
 // --- Components ---
 
-const Header = () => (
+const Header = ({ handleLogout, credits }: { handleLogout: () => void, credits: number | null }) => (
   <header className="bg-white border-b border-slate-200 sticky top-0 z-50">
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
       <div className="flex items-center gap-2">
@@ -96,34 +105,73 @@ const Header = () => (
         <span className="text-xl font-bold text-slate-900 tracking-tight">Anúncio<span className="text-orange-500">Pro</span></span>
       </div>
       <div className="flex items-center gap-4">
-        <span className="text-sm font-medium text-slate-500 hidden sm:block">Gerador com Nano Banana Pro</span>
-        <div className="h-8 w-8 rounded-full bg-slate-100 flex items-center justify-center border border-slate-200">
-          <Store className="w-4 h-4 text-slate-600" />
-        </div>
+        
+        {/* Mostrador de Créditos */}
+        {credits !== null && (
+          <div className="bg-orange-100 text-orange-700 px-3 py-1.5 rounded-full text-sm font-bold flex items-center gap-1.5 border border-orange-200">
+            <Sparkles className="w-4 h-4" />
+            {credits} {credits === 1 ? 'Crédito' : 'Créditos'}
+          </div>
+        )}
+
+        <div className="w-px h-6 bg-slate-200 hidden sm:block"></div>
+
+        <button 
+          onClick={handleLogout}
+          className="flex items-center gap-2 text-sm font-medium text-slate-500 hover:text-red-600 transition-colors"
+          title="Sair da conta"
+        >
+          <span className="hidden sm:block">Sair</span>
+          <LogOut className="w-5 h-5" />
+        </button>
       </div>
     </div>
   </header>
 );
 
-export default function App() {
+export default function App() { 
+  // --- 1. HOOKS E ESTADOS ---
+  const [session, setSession] = useState<any>(null); 
+  const [isInitializing, setIsInitializing] = useState(true); 
+  const [credits, setCredits] = useState<number | null>(null);
   const [step, setStep] = useState<'input' | 'processing' | 'result'>('input');
-  const [formData, setFormData] = useState<FormData>({
-    productName: '',
-    marketplace: 'shopee',
-    image: null
-  });
-  const [adProject, setAdProject] = useState<AdProject>({
-    productName: '',
-    originalImage: null,
-    generatedImages: [],
-    shopeeText: null,
-    mlText: null
-  });
+  const [formData, setFormData] = useState<FormData>({ productName: '', marketplace: 'shopee', image: null });
+  const [adProject, setAdProject] = useState<AdProject>({ productName: '', originalImage: null, generatedImages: [], shopeeText: null, mlText: null });
   const [generatedData, setGeneratedData] = useState<GeneratedData | null>(null);
   const [loadingMessage, setLoadingMessage] = useState('');
   const [error, setError] = useState<string | null>(null);
   const [hasLastListing, setHasLastListing] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  // --- 2. EFEITOS (Sessão e Créditos) ---
+  useEffect(() => {
+    supabase.auth.getSession().then(({ data }) => {
+      setSession(data.session);
+      setIsInitializing(false);
+    });
+
+    const { data: listener } = supabase.auth.onAuthStateChange((_event, session) => {
+      setSession(session);
+      setIsInitializing(false);
+    });
+
+    return () => { listener.subscription.unsubscribe(); };
+  }, []);
+
+  useEffect(() => {
+    const loadCredits = async () => {
+      if (!session?.user?.id) return;
+      const { data, error } = await supabase
+        .from("profiles")
+        .select("credits")
+        .eq("id", session.user.id)
+        .single();
+      if (data) {
+        setCredits(data.credits);
+      }
+    };
+    loadCredits();
+  }, [session]);
 
   useEffect(() => {
     const checkLastListing = async () => {
@@ -137,12 +185,28 @@ export default function App() {
             await del('last_listing');
           }
         }
-      } catch (e) {
-        console.error('Error checking last listing:', e);
-      }
+      } catch (e) { console.error('Error checking last listing:', e); }
     };
     checkLastListing();
   }, []);
+
+  // --- 3. TELAS DE CARREGAMENTO E LOGIN ---
+  if (isInitializing) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-[#F7F8FA]">
+        <Loader2 className="w-8 h-8 animate-spin text-orange-500" />
+      </div>
+    );
+  }
+
+  if (!session) {
+    return <Login />;
+  }
+
+  // --- 4. FUNÇÕES DO APP ---
+  const handleLogout = async () => {
+    await supabase.auth.signOut();
+  };
 
   const loadLastListing = async () => {
     try {
@@ -153,18 +217,14 @@ export default function App() {
         setGeneratedData(listing.generatedData);
         setStep('result');
       }
-    } catch (e) {
-      console.error('Error loading last listing:', e);
-    }
+    } catch (e) { console.error('Error loading last listing:', e); }
   };
 
   const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
       const reader = new FileReader();
-      reader.onloadend = () => {
-        setFormData({ ...formData, image: reader.result as string });
-      };
+      reader.onloadend = () => { setFormData({ ...formData, image: reader.result as string }); };
       reader.readAsDataURL(file);
     }
   };
@@ -174,62 +234,54 @@ export default function App() {
     const file = e.dataTransfer.files?.[0];
     if (file && file.type.startsWith('image/')) {
       const reader = new FileReader();
-      reader.onloadend = () => {
-        setFormData({ ...formData, image: reader.result as string });
-      };
+      reader.onloadend = () => { setFormData({ ...formData, image: reader.result as string }); };
       reader.readAsDataURL(file);
     }
   };
 
+  // ---------------------------------------------------------
+  // NOVA FUNÇÃO: Chama a Edge Function do Supabase
+  // ---------------------------------------------------------
+  const callSupabaseFunction = async (bodyData: any) => {
+    const { data, error } = await supabase.functions.invoke('gerar-anuncio', {
+      body: bodyData
+    });
+    if (error) {
+      throw new Error(`Erro no servidor: ${error.message}`);
+    }
+    if (data.error) {
+       throw new Error(`Erro da IA: ${data.error}`);
+    }
+    return data;
+  }
+
   const generateAIContent = async () => {
+    if (credits === null || credits <= 0) {
+      setError("⚠️ Você não tem créditos suficientes para gerar um novo anúncio. Assine um plano para continuar.");
+      return;
+    }
+
     try {
       setError(null);
       setStep('processing');
-      
-      // 1. Check API Key for Pro models
-      if (typeof window !== 'undefined' && (window as any).aistudio?.hasSelectedApiKey) {
-        const hasKey = await (window as any).aistudio.hasSelectedApiKey();
-        if (!hasKey) {
-          await (window as any).aistudio.openSelectKey();
-        }
-      }
 
-      // Initialize AI with the latest key
-      const ai = new GoogleGenAI({ apiKey: process.env.API_KEY || process.env.GEMINI_API_KEY });
-
-      // Helper function to safely generate and parse JSON with retries
-      const safeGenerateJSON = async (prompt: string, schema: any, retries = 2) => {
-        for (let i = 0; i <= retries; i++) {
-          try {
-            const response = await ai.models.generateContent({
-              model: 'gemini-3-flash-preview',
-              contents: prompt,
-              config: {
-                responseMimeType: 'application/json',
-                responseSchema: schema,
-                temperature: 0.7
-              }
-            });
-            let text = response.text || '{}';
-            
-            // Extract JSON from first { to last }
-            const start = text.indexOf('{');
-            const end = text.lastIndexOf('}');
-            if (start === -1 || end === -1) throw new Error("No JSON object found");
-            
-            let jsonStr = text.substring(start, end + 1);
-            // Clean invalid characters
-            jsonStr = jsonStr.replace(/[\u0000-\u001F]+/g, " ");
-            
-            return JSON.parse(jsonStr);
-          } catch (err) {
-            if (i === retries) throw err;
-            console.warn(`JSON parse failed, retrying (${i + 1}/${retries})...`, err);
-          }
-        }
+      // Helper function para gerar textos com segurança chamando a Edge Function
+      const safeGenerateTextJSON = async (prompt: string, schema: any) => {
+         const data = await callSupabaseFunction({
+            action: 'generateText',
+            prompt: prompt,
+            schema: schema
+         });
+         
+         let text = data.text || '{}';
+         const start = text.indexOf('{');
+         const end = text.lastIndexOf('}');
+         if (start === -1 || end === -1) throw new Error("No JSON object found");
+         let jsonStr = text.substring(start, end + 1);
+         jsonStr = jsonStr.replace(/[\u0000-\u001F]+/g, " ");
+         return JSON.parse(jsonStr);
       };
 
-      // Determine if this is a new project or if we can reuse data
       let isNewProject = false;
       if (formData.productName !== adProject.productName || formData.image !== adProject.originalImage) {
         isNewProject = true;
@@ -238,10 +290,9 @@ export default function App() {
       let currentImages = isNewProject ? [] : adProject.generatedImages;
       let currentShopeeText = isNewProject ? null : adProject.shopeeText;
       let currentMlText = isNewProject ? null : adProject.mlText;
-
       let currentTextData = formData.marketplace === 'shopee' ? currentShopeeText : currentMlText;
 
-      // 2. Generate Text (SEO) if not already generated for this marketplace
+      // 1. Gerar Textos (SEO) usando a Edge Function
       if (!currentTextData) {
         if (formData.marketplace === 'shopee') {
           setLoadingMessage('Criando copy e SEO otimizado para Shopee...');
@@ -267,9 +318,8 @@ Retorne SOMENTE um JSON válido. Não inclua texto fora do JSON.`;
             },
             required: ["title", "keywords", "coverSuggestion", "description", "hashtags"]
           };
-          currentTextData = await safeGenerateJSON(seoPrompt, seoSchema);
+          currentTextData = await safeGenerateTextJSON(seoPrompt, seoSchema);
         } else {
-          // Mercado Livre - 2 steps
           setLoadingMessage('Criando Meta Dados (Título, Bullets, Tags) para Mercado Livre...');
           const mlMetaPrompt = `Você é um Especialista Sênior em E-commerce, focado exclusivamente no algoritmo do Mercado Livre (Platinum).
 ESTRUTURA DO TÍTULO: [Produto/Palavra-chave] + [Atributo Principal] + [Benefício] + [Modelo]. Máximo de 60 caracteres.
@@ -289,7 +339,7 @@ Retorne SOMENTE um JSON válido. Não inclua texto fora do JSON.`;
             },
             required: ["title", "bullets", "tags"]
           };
-          const metaData = await safeGenerateJSON(mlMetaPrompt, mlMetaSchema);
+          const metaData = await safeGenerateTextJSON(mlMetaPrompt, mlMetaSchema);
 
           setLoadingMessage('Criando Descrição Otimizada para Mercado Livre...');
           const mlDescPrompt = `Você é um Especialista Sênior em E-commerce, focado exclusivamente no algoritmo do Mercado Livre (Platinum).
@@ -300,12 +350,10 @@ Retorne SOMENTE um JSON válido. Não inclua texto fora do JSON.`;
 
           const mlDescSchema = {
             type: Type.OBJECT,
-            properties: {
-              description: { type: Type.STRING }
-            },
+            properties: { description: { type: Type.STRING } },
             required: ["description"]
           };
-          const descData = await safeGenerateJSON(mlDescPrompt, mlDescSchema);
+          const descData = await safeGenerateTextJSON(mlDescPrompt, mlDescSchema);
 
           currentTextData = {
             title: metaData.title,
@@ -316,7 +364,7 @@ Retorne SOMENTE um JSON válido. Não inclua texto fora do JSON.`;
         }
       }
 
-      // 3. Generate Images if not already generated for this project
+      // 2. Gerar Imagens usando a Edge Function
       if (!currentImages || currentImages.length === 0) {
         setLoadingMessage('Criando prompts para geração de imagens...');
         
@@ -345,15 +393,13 @@ Retorne APENAS um JSON válido com a chave "imagePrompts" contendo um array de 5
 
         const promptsSchema = {
           type: Type.OBJECT,
-          properties: {
-            imagePrompts: { type: Type.ARRAY, items: { type: Type.STRING } }
-          },
+          properties: { imagePrompts: { type: Type.ARRAY, items: { type: Type.STRING } } },
           required: ["imagePrompts"]
         };
 
-        const promptsData = await safeGenerateJSON(promptsPrompt, promptsSchema);
+        const promptsData = await safeGenerateTextJSON(promptsPrompt, promptsSchema);
 
-        setLoadingMessage('Gerando 5 variações de imagens com Nano Banana Pro...');
+        setLoadingMessage('Gerando 5 variações de imagens seguras via servidor...');
         
         const base64Data = formData.image!.split(',')[1];
         const mimeType = formData.image!.match(/data:(.*?);/)?.[1] || 'image/jpeg';
@@ -370,17 +416,14 @@ Retorne APENAS um JSON válido com a chave "imagePrompts" contendo um array de 5
 
         const imagePromises = imagePrompts.map(async (prompt: string, index: number) => {
           try {
-            const res = await ai.models.generateContent({
-              model: 'gemini-2.5-flash-image',
-              contents: {
-                parts: [
-                  { inlineData: { data: base64Data, mimeType } },
-                  { text: prompt }
-                ]
-              }
+            const data = await callSupabaseFunction({
+              action: 'generateImage',
+              prompt: prompt,
+              imageBase64: base64Data,
+              mimeType: mimeType
             });
             
-            for (const part of res.candidates?.[0]?.content?.parts || []) {
+            for (const part of data.candidates?.[0]?.content?.parts || []) {
               if (part.inlineData) {
                 return `data:image/png;base64,${part.inlineData.data}`;
               }
@@ -395,7 +438,6 @@ Retorne APENAS um JSON válido com a chave "imagePrompts" contendo um array de 5
         currentImages = await Promise.all(imagePromises);
       }
 
-      // 4. Save to project state and display
       const newAdProject = {
         productName: formData.productName,
         originalImage: formData.image,
@@ -413,7 +455,6 @@ Retorne APENAS um JSON válido com a chave "imagePrompts" contendo um array de 5
       setAdProject(newAdProject);
       setGeneratedData(newGeneratedData);
       
-      // Save to IDB with WebP compression
       try {
         const compressedImages = await Promise.all(
           currentImages.map(async (img) => img ? await compressImageToWebP(img, 0.8) : null)
@@ -431,6 +472,17 @@ Retorne APENAS um JSON válido com a chave "imagePrompts" contendo um array de 5
         setHasLastListing(true);
       } catch (e) {
         console.error('Error saving last listing:', e);
+      }
+
+      // Desconta o crédito no banco de dados
+      if (session?.user?.id) {
+        const newCredits = credits - 1;
+        await supabase
+          .from("profiles")
+          .update({ credits: newCredits })
+          .eq("id", session.user.id);
+        
+        setCredits(newCredits); 
       }
 
       setStep('result');
@@ -453,28 +505,16 @@ Retorne APENAS um JSON válido com a chave "imagePrompts" contendo um array de 5
 
   const resetApp = () => {
     setStep('input');
-    setFormData({
-      productName: '',
-      marketplace: 'shopee',
-      image: null
-    });
-    setAdProject({
-      productName: '',
-      originalImage: null,
-      generatedImages: [],
-      shopeeText: null,
-      mlText: null
-    });
+    setFormData({ productName: '', marketplace: 'shopee', image: null });
+    setAdProject({ productName: '', originalImage: null, generatedImages: [], shopeeText: null, mlText: null });
     setGeneratedData(null);
     setError(null);
   };
 
   const downloadZip = async () => {
     if (!generatedData) return;
-
     const zip = new JSZip();
     
-    // 1. Add SEO Text
     let seoText = '';
     if (generatedData.marketplace === 'shopee') {
       const data = generatedData.textData as ShopeeData;
@@ -485,45 +525,28 @@ Retorne APENAS um JSON válido com a chave "imagePrompts" contendo um array de 5
     }
     zip.file(`SEO_${generatedData.marketplace.toUpperCase()}.txt`, seoText);
 
-    // 2. Add Images
-    const imageNames = [
-      '1_Capa_Hero.png',
-      '2_Lifestyle.png',
-      '3_Detalhe.png',
-      '4_Unboxing.png',
-      '5_Instagramavel.png'
-    ];
+    const imageNames = ['1_Capa_Hero.png', '2_Lifestyle.png', '3_Detalhe.png', '4_Unboxing.png', '5_Instagramavel.png'];
 
     generatedData.images.forEach((imgData, index) => {
       if (imgData) {
         const base64Data = imgData.split(',')[1];
-        if (base64Data) {
-          zip.file(imageNames[index], base64Data, { base64: true });
-        }
+        if (base64Data) { zip.file(imageNames[index], base64Data, { base64: true }); }
       }
     });
 
-    // 3. Generate and Download
     const content = await zip.generateAsync({ type: 'blob' });
     saveAs(content, `AnuncioPro_${formData.productName.replace(/[^a-z0-9]/gi, '_').toLowerCase()}.zip`);
   };
 
   return (
     <div className="min-h-screen bg-[#F7F8FA] font-sans text-slate-900 selection:bg-orange-100 selection:text-orange-900">
-      <Header />
+      <Header handleLogout={handleLogout} credits={credits} />
 
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12 sm:py-16">
         <AnimatePresence mode="wait">
           
-          {/* --- STEP 1: INPUT FORM --- */}
           {step === 'input' && (
-            <motion.div
-              key="input"
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -20 }}
-              className="max-w-4xl mx-auto"
-            >
+            <motion.div key="input" initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -20 }} className="max-w-4xl mx-auto">
               <div className="text-center mb-12">
                 <h1 className="text-[44px] sm:text-[48px] font-[800] text-[#0F172A] tracking-tight leading-tight mb-4">
                   Crie anúncios profissionais em anúncios que vendem
@@ -544,7 +567,6 @@ Retorne APENAS um JSON válido com a chave "imagePrompts" contendo um array de 5
                 <form onSubmit={handleSubmit} className="p-6 sm:p-8">
                   <div className="grid grid-cols-1 lg:grid-cols-2 gap-10">
                     
-                    {/* Left Column: Text Inputs */}
                     <div className="space-y-8">
                       <div>
                         <label className="flex items-center gap-2 text-sm font-semibold text-slate-700 mb-2">
@@ -552,12 +574,9 @@ Retorne APENAS um JSON válido com a chave "imagePrompts" contendo um array de 5
                           Nome do Produto *
                         </label>
                         <input
-                          type="text"
-                          required
-                          placeholder="Ex: Smartwatch D20 Pro"
+                          type="text" required placeholder="Ex: Smartwatch D20 Pro"
                           className="w-full px-4 h-[50px] rounded-[12px] border border-slate-300 focus:ring-2 focus:ring-orange-500 focus:border-orange-500 outline-none transition-all"
-                          value={formData.productName}
-                          onChange={e => setFormData({...formData, productName: e.target.value})}
+                          value={formData.productName} onChange={e => setFormData({...formData, productName: e.target.value})}
                         />
                       </div>
 
@@ -571,14 +590,7 @@ Retorne APENAS um JSON válido com a chave "imagePrompts" contendo um array de 5
                             const isActive = formData.marketplace === m;
                             return (
                               <label key={m} className={`flex-1 flex items-center justify-center px-4 h-[50px] rounded-[12px] border cursor-pointer transition-all ${isActive ? 'bg-orange-500 border-orange-500 text-white shadow-sm' : 'bg-white border-slate-200 text-slate-600 hover:border-slate-300'}`}>
-                                <input
-                                  type="radio"
-                                  name="marketplace"
-                                  value={m}
-                                  checked={isActive}
-                                  onChange={() => setFormData({...formData, marketplace: m})}
-                                  className="sr-only"
-                                />
+                                <input type="radio" name="marketplace" value={m} checked={isActive} onChange={() => setFormData({...formData, marketplace: m})} className="sr-only" />
                                 <div className="flex items-center gap-2">
                                   {isActive && <div className="w-2 h-2 rounded-full bg-white" />}
                                   {isActive && <Check className="w-4 h-4" />}
@@ -593,7 +605,6 @@ Retorne APENAS um JSON válido com a chave "imagePrompts" contendo um array de 5
                       </div>
                     </div>
 
-                    {/* Right Column: Image Upload */}
                     <div className="flex flex-col">
                       <label className="flex items-center gap-2 text-sm font-semibold text-slate-700 mb-1">
                         <ImageIcon className="w-4 h-4 text-slate-500" />
@@ -603,27 +614,15 @@ Retorne APENAS um JSON válido com a chave "imagePrompts" contendo um array de 5
                       
                       <div 
                         className={`flex-1 min-h-[240px] border-2 border-dashed rounded-[16px] flex flex-col items-center justify-center p-6 transition-all relative overflow-hidden ${formData.image ? 'border-orange-500 bg-orange-50/50' : 'border-slate-300 hover:border-orange-400 hover:bg-slate-50'}`}
-                        onDragOver={(e) => e.preventDefault()}
-                        onDrop={handleDrop}
-                        onClick={() => !formData.image && fileInputRef.current?.click()}
+                        onDragOver={(e) => e.preventDefault()} onDrop={handleDrop} onClick={() => !formData.image && fileInputRef.current?.click()}
                       >
-                        <input 
-                          type="file" 
-                          ref={fileInputRef} 
-                          className="hidden" 
-                          accept="image/*"
-                          onChange={handleImageUpload}
-                        />
+                        <input type="file" ref={fileInputRef} className="hidden" accept="image/*" onChange={handleImageUpload} />
                         
                         {formData.image ? (
                           <div className="absolute inset-0 w-full h-full group">
                             <img src={formData.image} alt="Preview" className="w-full h-full object-contain p-4" />
                             <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
-                              <button 
-                                type="button"
-                                onClick={(e) => { e.stopPropagation(); setFormData({...formData, image: null}); }}
-                                className="bg-white text-slate-900 px-4 py-2 rounded-lg font-medium text-sm hover:bg-slate-100"
-                              >
+                              <button type="button" onClick={(e) => { e.stopPropagation(); setFormData({...formData, image: null}); }} className="bg-white text-slate-900 px-4 py-2 rounded-lg font-medium text-sm hover:bg-slate-100">
                                 Trocar foto
                               </button>
                             </div>
@@ -643,21 +642,12 @@ Retorne APENAS um JSON válido com a chave "imagePrompts" contendo um array de 5
 
                   <div className="mt-10 pt-8 border-t border-slate-100 flex flex-col sm:flex-row justify-end gap-4">
                     {hasLastListing && (
-                      <button
-                        type="button"
-                        onClick={loadLastListing}
-                        className="w-full sm:w-auto bg-white border border-slate-300 hover:bg-slate-50 text-slate-700 px-8 h-[50px] rounded-[12px] font-bold text-[16px] shadow-sm transition-all flex items-center justify-center gap-2"
-                      >
-                        <History className="w-5 h-5" />
-                        Último Anúncio
+                      <button type="button" onClick={loadLastListing} className="w-full sm:w-auto bg-white border border-slate-300 hover:bg-slate-50 text-slate-700 px-8 h-[50px] rounded-[12px] font-bold text-[16px] shadow-sm transition-all flex items-center justify-center gap-2">
+                        <History className="w-5 h-5" /> Último Anúncio
                       </button>
                     )}
-                    <button
-                      type="submit"
-                      className="w-full sm:w-auto bg-orange-500 hover:bg-orange-600 text-white px-8 h-[50px] rounded-[12px] font-bold text-[16px] shadow-sm hover:shadow-md transition-all flex items-center justify-center gap-2"
-                    >
-                      <Sparkles className="w-5 h-5" />
-                      {error ? 'Tentar novamente' : 'Gerar Anúncio com IA'}
+                    <button type="submit" className="w-full sm:w-auto bg-orange-500 hover:bg-orange-600 text-white px-8 h-[50px] rounded-[12px] font-bold text-[16px] shadow-sm hover:shadow-md transition-all flex items-center justify-center gap-2">
+                      <Sparkles className="w-5 h-5" /> {error ? 'Tentar novamente' : 'Gerar Anúncio com IA'}
                     </button>
                   </div>
                 </form>
@@ -665,15 +655,8 @@ Retorne APENAS um JSON válido com a chave "imagePrompts" contendo um array de 5
             </motion.div>
           )}
 
-          {/* --- STEP 2: PROCESSING --- */}
           {step === 'processing' && (
-            <motion.div
-              key="processing"
-              initial={{ opacity: 0, scale: 0.95 }}
-              animate={{ opacity: 1, scale: 1 }}
-              exit={{ opacity: 0, scale: 1.05 }}
-              className="flex flex-col items-center justify-center py-20"
-            >
+            <motion.div key="processing" initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 1.05 }} className="flex flex-col items-center justify-center py-20">
               <div className="relative w-32 h-32 mb-8">
                 <div className="absolute inset-0 border-4 border-slate-100 rounded-full"></div>
                 <div className="absolute inset-0 border-4 border-orange-500 rounded-full border-t-transparent animate-spin"></div>
@@ -681,29 +664,20 @@ Retorne APENAS um JSON válido com a chave "imagePrompts" contendo um array de 5
                   <Sparkles className="w-10 h-10 text-orange-500 animate-pulse" />
                 </div>
               </div>
-              
               <h2 className="text-2xl font-bold text-slate-900 mb-4 text-center">Trabalhando no seu anúncio...</h2>
               <p className="text-slate-600 font-medium flex items-center gap-2">
-                <Loader2 className="w-4 h-4 animate-spin text-orange-500" />
-                {loadingMessage}
+                <Loader2 className="w-4 h-4 animate-spin text-orange-500" /> {loadingMessage}
               </p>
               <p className="text-xs text-slate-400 mt-4 max-w-xs text-center">Isso pode levar alguns segundos. Estamos gerando imagens em alta resolução.</p>
             </motion.div>
           )}
 
-          {/* --- STEP 3: RESULT --- */}
           {step === 'result' && generatedData && (
-            <motion.div
-              key="result"
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              className="max-w-6xl mx-auto"
-            >
+            <motion.div key="result" initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="max-w-6xl mx-auto">
               <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between mb-10 gap-6">
                 <div>
                   <h2 className="text-[32px] font-[800] text-[#0F172A] flex items-center gap-3 tracking-tight">
-                    <CheckCircle2 className="w-8 h-8 text-emerald-500" />
-                    Anúncio Pronto!
+                    <CheckCircle2 className="w-8 h-8 text-emerald-500" /> Anúncio Pronto!
                   </h2>
                   <p className="text-[#64748B] mt-2 text-[16px]">SEO e Imagens geradas com sucesso para {generatedData.marketplace === 'shopee' ? 'Shopee' : 'Mercado Livre'}.</p>
                 </div>
@@ -715,15 +689,12 @@ Retorne APENAS um JSON válido com a chave "imagePrompts" contendo um array de 5
                     Novo Produto
                   </button>
                   <button onClick={downloadZip} className="px-6 h-[50px] rounded-[12px] bg-orange-500 text-white font-bold hover:bg-orange-600 transition-all shadow-sm hover:shadow-md flex items-center justify-center gap-2">
-                    <Download className="w-5 h-5" />
-                    Baixar Pacote
+                    <Download className="w-5 h-5" /> Baixar Pacote
                   </button>
                 </div>
               </div>
 
               <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
-                
-                {/* Visuals Column (Images) */}
                 <div className="lg:col-span-5 space-y-6">
                   <div className="bg-white rounded-[16px] border border-[#E6E8EE] shadow-[0_6px_18px_rgba(15,23,42,0.06)] overflow-hidden">
                     <div className="p-5 border-b border-slate-100 bg-slate-50/50 flex items-center gap-2">
@@ -731,8 +702,6 @@ Retorne APENAS um JSON válido com a chave "imagePrompts" contendo um array de 5
                       <h3 className="font-bold text-slate-800">Imagens Geradas (Nano Banana Pro)</h3>
                     </div>
                     <div className="p-6 space-y-4">
-                      
-                      {/* Image 1: Capa Hero */}
                       <div className="relative aspect-square rounded-xl overflow-hidden border border-slate-200 bg-slate-100 group">
                         {generatedData.images[0] ? (
                           <img src={generatedData.images[0]} alt="Capa Hero" className="w-full h-full object-cover" />
@@ -743,8 +712,6 @@ Retorne APENAS um JSON válido com a chave "imagePrompts" contendo um array de 5
                           1. Capa Hero
                         </div>
                       </div>
-                      
-                      {/* Thumbnails Grid */}
                       <div className="grid grid-cols-2 gap-4">
                         {[
                           { title: '2. Lifestyle', img: generatedData.images[1] },
@@ -768,7 +735,6 @@ Retorne APENAS um JSON válido com a chave "imagePrompts" contendo um array de 5
                   </div>
                 </div>
 
-                {/* Text Column (SEO) */}
                 <div className="lg:col-span-7 space-y-6">
                   {generatedData.marketplace === 'shopee' ? (
                     <ShopeeResultCard data={generatedData.textData as ShopeeData} />
@@ -776,7 +742,6 @@ Retorne APENAS um JSON válido com a chave "imagePrompts" contendo um array de 5
                     <MLResultCard data={generatedData.textData as MLData} />
                   )}
                 </div>
-
               </div>
             </motion.div>
           )}
@@ -790,7 +755,6 @@ Retorne APENAS um JSON válido com a chave "imagePrompts" contendo um array de 5
 
 const ShopeeResultCard = ({ data }: { data: ShopeeData }) => {
   const [copied, setCopied] = useState(false);
-
   const copyToClipboard = () => {
     const text = `TÍTULO:\n${data.title}\n\nDESCRIÇÃO:\n${data.description}\n\nHASHTAGS:\n${data.hashtags.join(' ')}\n\nPALAVRAS-CHAVE:\n${data.keywords.join(', ')}`;
     navigator.clipboard.writeText(text);
@@ -805,57 +769,16 @@ const ShopeeResultCard = ({ data }: { data: ShopeeData }) => {
           <ShoppingBag className="w-5 h-5 text-orange-500" />
           <h3 className="font-bold text-slate-800">SEO Especialista - Shopee</h3>
         </div>
-        <button 
-          onClick={copyToClipboard}
-          className="flex items-center gap-1.5 text-sm font-medium text-slate-600 hover:text-orange-600 transition-colors bg-white px-4 py-2 rounded-lg border border-slate-200 shadow-sm"
-        >
-          {copied ? <Check className="w-4 h-4 text-emerald-500" /> : <Copy className="w-4 h-4" />}
-          {copied ? 'Copiado!' : 'Copiar Tudo'}
+        <button onClick={copyToClipboard} className="flex items-center gap-1.5 text-sm font-medium text-slate-600 hover:text-orange-600 transition-colors bg-white px-4 py-2 rounded-lg border border-slate-200 shadow-sm">
+          {copied ? <Check className="w-4 h-4 text-emerald-500" /> : <Copy className="w-4 h-4" />} {copied ? 'Copiado!' : 'Copiar Tudo'}
         </button>
       </div>
-      
       <div className="p-6 space-y-8">
-        <div>
-          <span className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-1 block">Título Otimizado ({data.title?.length || 0} chars)</span>
-          <div className="bg-slate-50 p-3 rounded-xl border border-slate-100 font-medium text-slate-900">
-            {data.title}
-          </div>
-        </div>
-
-        <div>
-          <span className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-1 block">Sugestão de Capa</span>
-          <div className="bg-orange-50 p-3 rounded-xl border border-orange-100 text-orange-800 text-sm font-medium flex items-start gap-2">
-            <Sparkles className="w-4 h-4 shrink-0 mt-0.5" />
-            {data.coverSuggestion}
-          </div>
-        </div>
-
-        <div>
-          <span className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-1 block">Descrição Persuasiva</span>
-          <div className="bg-slate-50 p-4 rounded-xl border border-slate-100 text-slate-700 text-sm whitespace-pre-wrap leading-relaxed">
-            {data.description}
-          </div>
-        </div>
-
-        <div>
-          <span className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-1 block">Hashtags</span>
-          <div className="flex flex-wrap gap-2">
-            {data.hashtags?.map((h, i) => (
-              <span key={i} className="text-blue-600 text-sm font-medium">{h.startsWith('#') ? h : `#${h}`}</span>
-            ))}
-          </div>
-        </div>
-
-        <div>
-          <span className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-1 block">Palavras-chave (Tags)</span>
-          <div className="flex flex-wrap gap-2">
-            {data.keywords?.map((k, i) => (
-              <span key={i} className="bg-slate-100 text-slate-600 border border-slate-200 px-2.5 py-1 rounded-md text-xs font-medium">
-                {k}
-              </span>
-            ))}
-          </div>
-        </div>
+        <div><span className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-1 block">Título Otimizado ({data.title?.length || 0} chars)</span><div className="bg-slate-50 p-3 rounded-xl border border-slate-100 font-medium text-slate-900">{data.title}</div></div>
+        <div><span className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-1 block">Sugestão de Capa</span><div className="bg-orange-50 p-3 rounded-xl border border-orange-100 text-orange-800 text-sm font-medium flex items-start gap-2"><Sparkles className="w-4 h-4 shrink-0 mt-0.5" />{data.coverSuggestion}</div></div>
+        <div><span className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-1 block">Descrição Persuasiva</span><div className="bg-slate-50 p-4 rounded-xl border border-slate-100 text-slate-700 text-sm whitespace-pre-wrap leading-relaxed">{data.description}</div></div>
+        <div><span className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-1 block">Hashtags</span><div className="flex flex-wrap gap-2">{data.hashtags?.map((h, i) => (<span key={i} className="text-blue-600 text-sm font-medium">{h.startsWith('#') ? h : `#${h}`}</span>))}</div></div>
+        <div><span className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-1 block">Palavras-chave (Tags)</span><div className="flex flex-wrap gap-2">{data.keywords?.map((k, i) => (<span key={i} className="bg-slate-100 text-slate-600 border border-slate-200 px-2.5 py-1 rounded-md text-xs font-medium">{k}</span>))}</div></div>
       </div>
     </div>
   );
@@ -863,7 +786,6 @@ const ShopeeResultCard = ({ data }: { data: ShopeeData }) => {
 
 const MLResultCard = ({ data }: { data: MLData }) => {
   const [copied, setCopied] = useState(false);
-
   const copyToClipboard = () => {
     const text = `TÍTULO:\n${data.title}\n\nBULLETS:\n${data.bullets.map(b => `- ${b}`).join('\n')}\n\nDESCRIÇÃO:\n${data.description}\n\nPALAVRAS-CHAVE:\n${data.tags.join(', ')}`;
     navigator.clipboard.writeText(text);
@@ -878,56 +800,16 @@ const MLResultCard = ({ data }: { data: MLData }) => {
           <Store className="w-5 h-5 text-yellow-500" />
           <h3 className="font-bold text-slate-800">SEO Especialista Platinum - Mercado Livre</h3>
         </div>
-        <button 
-          onClick={copyToClipboard}
-          className="flex items-center gap-1.5 text-sm font-medium text-slate-600 hover:text-yellow-600 transition-colors bg-white px-4 py-2 rounded-lg border border-slate-200 shadow-sm"
-        >
-          {copied ? <Check className="w-4 h-4 text-emerald-500" /> : <Copy className="w-4 h-4" />}
-          {copied ? 'Copiado!' : 'Copiar Tudo'}
+        <button onClick={copyToClipboard} className="flex items-center gap-1.5 text-sm font-medium text-slate-600 hover:text-yellow-600 transition-colors bg-white px-4 py-2 rounded-lg border border-slate-200 shadow-sm">
+          {copied ? <Check className="w-4 h-4 text-emerald-500" /> : <Copy className="w-4 h-4" />} {copied ? 'Copiado!' : 'Copiar Tudo'}
         </button>
       </div>
-      
       <div className="p-6 space-y-8">
-        <div>
-          <span className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-1 block">Título Otimizado ({data.title?.length || 0} chars)</span>
-          <div className="bg-slate-50 p-3 rounded-xl border border-slate-100 font-medium text-slate-900">
-            {data.title}
-          </div>
-          {(data.title?.length || 0) > 60 && (
-            <p className="text-xs text-red-500 mt-1">Aviso: Título passou de 60 caracteres.</p>
-          )}
-        </div>
-
-        <div>
-          <span className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-1 block">Bullet Points</span>
-          <ul className="space-y-2">
-            {data.bullets?.map((b, i) => (
-              <li key={i} className="text-sm text-slate-700 bg-yellow-50/50 px-3 py-2 rounded-lg border border-yellow-100 flex items-start gap-2">
-                <span className="font-bold text-yellow-600">•</span> {b}
-              </li>
-            ))}
-          </ul>
-        </div>
-
-        <div>
-          <span className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-1 block">Descrição Persuasiva</span>
-          <div className="bg-slate-50 p-4 rounded-xl border border-slate-100 text-slate-700 text-sm whitespace-pre-wrap leading-relaxed">
-            {data.description}
-          </div>
-        </div>
-
-        <div>
-          <span className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-1 block">Palavras-chave (Tags)</span>
-          <div className="flex flex-wrap gap-2">
-            {data.tags?.map((k, i) => (
-              <span key={i} className="bg-slate-100 text-slate-600 border border-slate-200 px-2.5 py-1 rounded-md text-xs font-medium">
-                {k}
-              </span>
-            ))}
-          </div>
-        </div>
+        <div><span className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-1 block">Título Otimizado ({data.title?.length || 0} chars)</span><div className="bg-slate-50 p-3 rounded-xl border border-slate-100 font-medium text-slate-900">{data.title}</div>{(data.title?.length || 0) > 60 && (<p className="text-xs text-red-500 mt-1">Aviso: Título passou de 60 caracteres.</p>)}</div>
+        <div><span className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-1 block">Bullet Points</span><ul className="space-y-2">{data.bullets?.map((b, i) => (<li key={i} className="text-sm text-slate-700 bg-yellow-50/50 px-3 py-2 rounded-lg border border-yellow-100 flex items-start gap-2"><span className="font-bold text-yellow-600">•</span> {b}</li>))}</ul></div>
+        <div><span className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-1 block">Descrição Persuasiva</span><div className="bg-slate-50 p-4 rounded-xl border border-slate-100 text-slate-700 text-sm whitespace-pre-wrap leading-relaxed">{data.description}</div></div>
+        <div><span className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-1 block">Palavras-chave (Tags)</span><div className="flex flex-wrap gap-2">{data.tags?.map((k, i) => (<span key={i} className="bg-slate-100 text-slate-600 border border-slate-200 px-2.5 py-1 rounded-md text-xs font-medium">{k}</span>))}</div></div>
       </div>
     </div>
   );
 };
-
