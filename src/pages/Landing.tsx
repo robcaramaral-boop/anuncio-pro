@@ -122,7 +122,7 @@ export default function Landing({ onLoginClick }: LandingProps) {
         </div>
       </section>
 
-      {/* PROVA SOCIAL (CARROSSEL 8 ITENS) */}
+      {/* PROVA SOCIAL (CARROSSEL 8 ITENS — SEM IMAGENS, ESTILO IGUAL AO ATUAL) */}
       <section className="py-24 px-4 bg-[#0F172A]">
         <div className="max-w-6xl mx-auto">
           <div className="text-center mb-16">
@@ -207,26 +207,24 @@ export default function Landing({ onLoginClick }: LandingProps) {
 
 /**
  * Carrossel automático (8 itens), deslizando da direita -> esquerda.
- * Requisitos:
- * - Coloque imagens em /public/provas/proof-1.png ... proof-8.png
+ * Sem imagens e com visual igual ao card atual.
  */
 function SocialProofCarousel() {
   const items = useMemo(() => {
     const values = ["42.565,80", "8.831,90", "153.887,62", "21.044,10", "65.210,33", "12.904,77", "98.430,12", "7.115,50"];
     const quotes = [
-      "As imagens chamam muita atenção e o SEO melhora o alcance.",
-      "Primeira semana já trouxe resultado melhor que meses sozinho.",
-      "Escala real sem precisar de equipe grande.",
-      "O anúncio ficou mais profissional e aumentou a conversão.",
-      "Melhorou o CTR e minhas visitas subiram.",
-      "Ganho de tempo absurdo: anúncio pronto em minutos.",
-      "O produto começou a aparecer melhor nas buscas.",
-      "Subi anúncios mais rápidos e com mais qualidade.",
+      "O AnúncioPro fez minhas vendas dispararem na Shopee. As imagens geradas chamam muita atenção e o SEO coloca meu produto na primeira página!",
+      "Começando do zero com a automação do AnúncioPro. A primeira semana já trouxe resultados que eu não tive nos últimos 3 meses tentando fazer sozinho.",
+      "Escala real sem precisar de equipe grande. A IA faz o trabalho de 5 pessoas e eu consigo subir anúncios muito mais rápido.",
+      "Depois que comecei a usar, meus anúncios ficaram mais profissionais e aumentou a conversão.",
+      "Melhorou o CTR e minhas visitas subiram. O título e a descrição ficaram muito mais fortes.",
+      "Ganho de tempo absurdo: anúncio pronto em minutos, sem ficar quebrando cabeça.",
+      "Comecei a aparecer melhor nas buscas. O SEO premium faz diferença de verdade.",
+      "Subi mais anúncios na semana e com mais qualidade. Isso destravou meu crescimento.",
     ];
 
     return Array.from({ length: 8 }).map((_, i) => ({
       id: i + 1,
-      image: `/provas/proof-${i + 1}.png`,
       title: "Resultados de usuários do AnúncioPro",
       value: values[i],
       quote: quotes[i],
@@ -251,32 +249,59 @@ function SocialProofCarousel() {
         >
           {items.map((it) => (
             <div key={it.id} className="w-full shrink-0 px-2">
-              <div className="bg-slate-800/30 p-6 md:p-8 rounded-3xl border border-slate-700 hover:border-orange-500/50 transition-all">
-                <div className="bg-slate-900 rounded-2xl p-4 md:p-6 mb-6 border border-slate-800 relative overflow-hidden">
+              <div className="bg-slate-800/30 p-8 rounded-3xl border border-slate-700 flex flex-col hover:border-orange-500/50 transition-all">
+                <div className="bg-slate-900 rounded-2xl p-6 mb-8 border border-slate-800 relative overflow-hidden flex-1">
                   <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-orange-500 to-yellow-500"></div>
 
                   <p className="text-xs text-slate-400 font-bold mb-2 uppercase tracking-wider">
                     {it.title}
                   </p>
 
-                  <div className="flex items-start gap-1 mb-4">
+                  <div className="flex items-start gap-1">
                     <span className="text-emerald-400 font-bold mt-1">R$</span>
-                    <span className="text-4xl md:text-5xl font-black text-white tracking-tight">{it.value}</span>
+                    <span className="text-4xl font-black text-white tracking-tight">{it.value}</span>
                   </div>
 
-                  <div className="rounded-xl overflow-hidden border border-slate-800">
-                    <img
-                      src={it.image}
-                      alt={`Prova ${it.id}`}
-                      className="w-full h-[220px] md:h-[340px] object-cover"
-                      loading="lazy"
+                  {/* Ícone estilo “tendência” no canto (sem precisar importar) */}
+                  <svg
+                    className="w-16 h-16 text-emerald-500/10 absolute -bottom-4 -right-4"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                  >
+                    <path
+                      d="M4 14l4-4 4 4 8-8"
+                      stroke="currentColor"
+                      strokeWidth="2"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
                     />
-                  </div>
+                  </svg>
                 </div>
 
-                <p className="text-slate-300 italic text-sm md:text-base leading-relaxed text-center">
-                  “{it.quote}”
-                </p>
+                {/* Selo + “chat” + depoimento (igual ao seu estilo atual) */}
+                <div className="text-center mb-2">
+                  <div className="flex items-center justify-center gap-2 mb-4 text-orange-500">
+                    <span className="text-sm font-black uppercase tracking-wider">Resultados de clientes</span>
+                  </div>
+
+                  <div className="flex justify-center mb-4">
+                    <div className="bg-emerald-500/20 p-3 rounded-full">
+                      <svg className="w-6 h-6 text-emerald-400" viewBox="0 0 24 24" fill="none">
+                        <path
+                          d="M21 15a4 4 0 0 1-4 4H8l-5 3V7a4 4 0 0 1 4-4h10a4 4 0 0 1 4 4v8z"
+                          stroke="currentColor"
+                          strokeWidth="2"
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                        />
+                      </svg>
+                    </div>
+                  </div>
+
+                  <p className="text-slate-300 italic text-sm leading-relaxed">
+                    “{it.quote}”
+                  </p>
+                </div>
               </div>
             </div>
           ))}
