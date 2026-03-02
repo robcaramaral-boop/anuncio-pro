@@ -17,9 +17,11 @@ import {
   Sparkles,
   Copy,
   Check,
-  AlertCircle,
   History,
-  LogOut
+  LogOut,
+  User,
+  ChevronDown,
+  Crown
 } from 'lucide-react';
 
 enum Type {
@@ -37,94 +39,113 @@ interface FormData {
   image: string | null;
 }
 
-interface ShopeeData {
-  title: string;
-  keywords: string[];
-  coverSuggestion: string;
-  description: string;
-  hashtags: string[];
+interface UserProfile {
+  credits: number;
+  plan_name: string;
+  expires_at: string | null;
 }
 
-interface MLData {
-  title: string;
-  bullets: string[];
-  tags: string[];
-  description: string;
-}
-
-interface GeneratedData {
-  marketplace: Marketplace;
-  images: (string | null)[];
-  textData: ShopeeData | MLData;
-}
-
-interface AdProject {
-  productName: string;
-  originalImage: string | null;
-  generatedImages: (string | null)[];
-  shopeeText: ShopeeData | null;
-  mlText: MLData | null;
-}
-
-interface LastListing {
-  timestamp: number;
-  formData: FormData;
-  adProject: AdProject;
-  generatedData: GeneratedData;
-}
+// ... [Manter interfaces ShopeeData, MLData, GeneratedData, AdProject, LastListing] ...
+interface ShopeeData { title: string; keywords: string[]; coverSuggestion: string; description: string; hashtags: string[]; }
+interface MLData { title: string; bullets: string[]; tags: string[]; description: string; }
+interface GeneratedData { marketplace: Marketplace; images: (string | null)[]; textData: ShopeeData | MLData; }
+interface AdProject { productName: string; originalImage: string | null; generatedImages: (string | null)[]; shopeeText: ShopeeData | null; mlText: MLData | null; }
+interface LastListing { timestamp: number; formData: FormData; adProject: AdProject; generatedData: GeneratedData; }
 
 const compressImageToWebP = (base64: string, quality = 0.8): Promise<string> => {
-  return new Promise((resolve, reject) => {
+  return new Promise((resolve) => {
     const img = new Image();
     img.onload = () => {
       const canvas = document.createElement('canvas');
-      canvas.width = img.width;
-      canvas.height = img.height;
+      canvas.width = img.width; canvas.height = img.height;
       const ctx = canvas.getContext('2d');
       if (!ctx) return resolve(base64);
       ctx.drawImage(img, 0, 0);
-      const webp = canvas.toDataURL('image/webp', quality);
-      resolve(webp);
+      resolve(canvas.toDataURL('image/webp', quality));
     };
-    img.onerror = reject;
     img.src = base64;
   });
 };
 
+const calculateDaysLeft = (expiresAt: string | null) => {
+  if (!expiresAt) return 0;
+  const diff = new Date(expiresAt).getTime() - new Date().getTime();
+  return Math.max(0, Math.ceil(diff / (1000 * 3600 * 24)));
+};
+
 // --- Components ---
 
-const Header = ({ handleLogout, credits }: { handleLogout: () => void, credits: number | null }) => (
-  // TOPO ESCURO INTEGRADO AO NOVO FUNDO
-  <header className="bg-[#0F172A] border-b border-slate-800 sticky top-0 z-50">
-    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
-      <div className="flex items-center gap-2">
-        <div className="bg-orange-500 p-2 rounded-lg">
-          <Package className="w-6 h-6 text-white" />
-        </div>
-        <span className="text-xl font-bold text-white tracking-tight">Anúncio<span className="text-orange-500">Pro</span></span>
-      </div>
-      <div className="flex items-center gap-4">
-        {credits !== null && (
-          <div className="bg-orange-500/10 text-orange-500 px-3 py-1.5 rounded-full text-sm font-bold flex items-center gap-1.5 border border-orange-500/20">
-            <Sparkles className="w-4 h-4" />
-            {credits} {credits === 1 ? 'Crédito' : 'Créditos'}
+const Header = ({ handleLogout, profile, session, openPlans }: { handleLogout: () => void, profile: UserProfile | null, session: any, openPlans: () => void }) => {
+  const [menuOpen, setMenuOpen] = useState(false);
+  const daysLeft = calculateDaysLeft(profile?.expires_at);
+  const isPremium = profile?.plan_name && profile.plan_name !== 'Gratuito';
+
+  return (
+    <header className="bg-[#0F172A] border-b border-slate-800 sticky top-0 z-50">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
+        <div className="flex items-center gap-2">
+          <div className="bg-orange-500 p-2 rounded-lg">
+            <Package className="w-6 h-6 text-white" />
           </div>
-        )}
-        <div className="w-px h-6 bg-slate-800 hidden sm:block"></div>
-        <button 
-          onClick={handleLogout}
-          className="flex items-center gap-2 text-sm font-bold text-slate-400 hover:text-red-500 transition-colors"
-        >
-          Sair <LogOut className="w-5 h-5" />
-        </button>
+          <span className="text-xl font-bold text-white tracking-tight hidden sm:block">Anúncio<span className="text-orange-500">Pro</span></span>
+        </div>
+        
+        <div className="flex items-center gap-3">
+          {/* Mostrador de Créditos (Só para plano Gratuito) */}
+          {!isPremium && profile?.credits !== undefined && (
+            <div className="bg-orange-500/10 text-orange-500 px-3 py-1.5 rounded-full text-sm font-bold flex items-center gap-1.5 border border-orange-500/20">
+              <Sparkles className="w-4 h-4" />
+              {profile.credits} Créditos
+            </div>
+          )}
+
+          {/* Menu de Perfil Premium */}
+          <div className="relative">
+            <button 
+              onClick={() => setMenuOpen(!menuOpen)}
+              className="flex items-center gap-3 bg-slate-800/50 hover:bg-slate-800 border border-slate-700 px-3 py-1.5 rounded-full transition-colors"
+            >
+              <div className={`p-1 rounded-full ${isPremium ? 'bg-gradient-to-tr from-orange-500 to-yellow-400' : 'bg-slate-600'}`}>
+                {isPremium ? <Crown className="w-4 h-4 text-white" /> : <User className="w-4 h-4 text-white" />}
+              </div>
+              <div className="flex flex-col text-left hidden sm:flex">
+                <span className="text-xs font-bold text-white leading-none capitalize">{profile?.plan_name || 'Gratuito'}</span>
+                {isPremium ? (
+                   <span className={`text-[10px] font-bold leading-none mt-0.5 ${daysLeft <= 5 ? 'text-red-400' : 'text-emerald-400'}`}>
+                     {daysLeft} dias restantes
+                   </span>
+                ) : (
+                   <span className="text-[10px] text-slate-400 leading-none mt-0.5">Fazer Upgrade</span>
+                )}
+              </div>
+              <ChevronDown className="w-4 h-4 text-slate-400" />
+            </button>
+
+            {/* Dropdown Aberto */}
+            {menuOpen && (
+              <div className="absolute right-0 mt-2 w-64 bg-[#1E293B] border border-slate-700 rounded-2xl shadow-2xl py-2 z-50">
+                <div className="px-4 py-3 border-b border-slate-700/50 mb-2">
+                  <p className="text-xs text-slate-400 font-medium">Conectado como</p>
+                  <p className="text-sm font-bold text-white truncate">{session?.user?.email}</p>
+                </div>
+                
+                <button onClick={() => { openPlans(); setMenuOpen(false); }} className="w-full text-left px-4 py-2.5 text-sm font-bold text-white hover:bg-slate-800 flex items-center gap-2 transition-colors">
+                  <Sparkles className="w-4 h-4 text-orange-500" /> Mudar de Plano
+                </button>
+                <button onClick={handleLogout} className="w-full text-left px-4 py-2.5 text-sm font-bold text-red-400 hover:bg-slate-800 flex items-center gap-2 transition-colors mt-1 border-t border-slate-700/50">
+                  <LogOut className="w-4 h-4" /> Sair do Sistema
+                </button>
+              </div>
+            )}
+          </div>
+        </div>
       </div>
-    </div>
-  </header>
-);
+    </header>
+  );
+};
 
 const PlansModal = ({ isOpen, onClose }: { isOpen: boolean; onClose: () => void }) => {
   const [billingCycle, setBillingCycle] = useState<'monthly' | 'yearly'>('monthly');
-
   if (!isOpen) return null;
 
   const handleSubscribe = (plano: string) => {
@@ -134,36 +155,21 @@ const PlansModal = ({ isOpen, onClose }: { isOpen: boolean; onClose: () => void 
   };
 
   const content = {
-    lite: {
-      price: billingCycle === 'monthly' ? '49,90' : '497,00',
-      ads: billingCycle === 'monthly' ? '15 anúncios profissionais' : '180 anúncios profissionais'
-    },
-    pro: {
-      price: billingCycle === 'monthly' ? '97,00' : '967,00',
-      ads: billingCycle === 'monthly' ? '60 anúncios profissionais' : '720 anúncios profissionais'
-    }
+    lite: { price: billingCycle === 'monthly' ? '49,90' : '497,00', ads: billingCycle === 'monthly' ? '15 anúncios profissionais' : '180 anúncios profissionais' },
+    pro: { price: billingCycle === 'monthly' ? '97,00' : '967,00', ads: billingCycle === 'monthly' ? '60 anúncios profissionais' : '720 anúncios profissionais' }
   };
 
   return (
     <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-slate-900/80 backdrop-blur-sm">
-      <motion.div 
-        initial={{ opacity: 0, scale: 0.9, y: 20 }}
-        animate={{ opacity: 1, scale: 1, y: 0 }}
-        className="bg-white rounded-[24px] shadow-2xl max-w-4xl w-full overflow-hidden border border-slate-200"
-      >
+      <motion.div initial={{ opacity: 0, scale: 0.9, y: 20 }} animate={{ opacity: 1, scale: 1, y: 0 }} className="bg-white rounded-[24px] shadow-2xl max-w-4xl w-full overflow-hidden border border-slate-200">
         <div className="p-8 sm:p-12 text-center">
-          <div className="bg-orange-100 text-orange-600 w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-6">
-            <Sparkles className="w-8 h-8" />
-          </div>
+          <div className="bg-orange-100 text-orange-600 w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-6"><Sparkles className="w-8 h-8" /></div>
           <h2 className="text-3xl font-[800] text-slate-900 mb-2">Aumente suas vendas agora</h2>
           <p className="text-slate-500 mb-8 font-medium">Escolha o plano ideal para o seu volume de anúncios.</p>
 
           <div className="flex items-center justify-center gap-4 mb-10">
             <span className={`text-sm font-bold ${billingCycle === 'monthly' ? 'text-slate-900' : 'text-slate-400'}`}>Mensal</span>
-            <button 
-              onClick={() => setBillingCycle(billingCycle === 'monthly' ? 'yearly' : 'monthly')}
-              className="w-14 h-7 bg-slate-200 rounded-full relative p-1 transition-colors"
-            >
+            <button onClick={() => setBillingCycle(billingCycle === 'monthly' ? 'yearly' : 'monthly')} className="w-14 h-7 bg-slate-200 rounded-full relative p-1 transition-colors">
               <div className={`w-5 h-5 bg-orange-500 rounded-full transition-transform ${billingCycle === 'yearly' ? 'translate-x-7' : 'translate-x-0'}`} />
             </button>
             <div className="flex items-center gap-2">
@@ -173,32 +179,22 @@ const PlansModal = ({ isOpen, onClose }: { isOpen: boolean; onClose: () => void 
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6 text-left">
-            <div className="border-2 border-slate-100 rounded-[20px] p-6 hover:border-orange-200 transition-all group">
+            <div className="border-2 border-slate-100 rounded-[20px] p-6 hover:border-orange-200 transition-all">
               <span className="text-xs font-bold text-orange-500 uppercase tracking-wider">Vendedor Lite</span>
-              <div className="flex items-baseline gap-1 mt-2 mb-4">
-                <span className="text-4xl font-black text-slate-900">R$ {content.lite.price}</span>
-                <span className="text-slate-400 font-medium">/{billingCycle === 'monthly' ? 'mês' : 'ano'}</span>
-              </div>
+              <div className="flex items-baseline gap-1 mt-2 mb-4"><span className="text-4xl font-black text-slate-900">R$ {content.lite.price}</span><span className="text-slate-400 font-medium">/{billingCycle === 'monthly' ? 'mês' : 'ano'}</span></div>
               <ul className="space-y-3 mb-8">
                 <li className="flex items-center gap-2 text-sm text-orange-600 font-bold"><Check className="w-4 h-4" /> {content.lite.ads}</li>
                 <li className="flex items-center gap-2 text-sm text-slate-600 font-medium"><Check className="w-4 h-4 text-emerald-500" /> SEO Shopee e Mercado Livre</li>
-                <li className="flex items-center gap-2 text-sm text-slate-600 font-medium"><Check className="w-4 h-4 text-emerald-500" /> Imagens em alta definição</li>
               </ul>
               <button onClick={() => handleSubscribe('Vendedor Lite')} className="w-full py-3 rounded-xl bg-slate-900 text-white font-bold hover:bg-slate-800 transition-all shadow-lg">Assinar Agora</button>
             </div>
-
             <div className="border-2 border-orange-500 rounded-[20px] p-6 bg-orange-50/30 relative">
               <div className="absolute -top-3 right-6 bg-orange-500 text-white text-[10px] font-bold px-3 py-1 rounded-full uppercase">Mais Vendido</div>
               <span className="text-xs font-bold text-orange-500 uppercase tracking-wider">Plano Pro</span>
-              <div className="flex items-baseline gap-1 mt-2 mb-4">
-                <span className="text-4xl font-black text-slate-900">R$ {content.pro.price}</span>
-                <span className="text-slate-400 font-medium">/{billingCycle === 'monthly' ? 'mês' : 'ano'}</span>
-              </div>
+              <div className="flex items-baseline gap-1 mt-2 mb-4"><span className="text-4xl font-black text-slate-900">R$ {content.pro.price}</span><span className="text-slate-400 font-medium">/{billingCycle === 'monthly' ? 'mês' : 'ano'}</span></div>
               <ul className="space-y-3 mb-8">
                 <li className="flex items-center gap-2 text-sm text-orange-600 font-bold"><Check className="w-4 h-4" /> {content.pro.ads}</li>
-                <li className="flex items-center gap-2 text-sm text-slate-800 font-bold"><Check className="w-4 h-4 text-emerald-500" /> SEO Shopee e Mercado Livre</li>
-                <li className="flex items-center gap-2 text-sm text-slate-800 font-bold"><Check className="w-4 h-4 text-emerald-500" /> Imagens em alta definição</li>
-                <li className="flex items-center gap-2 text-sm text-slate-600"><Check className="w-4 h-4 text-emerald-500" /> Suporte prioritário</li>
+                <li className="flex items-center gap-2 text-sm text-slate-800 font-bold"><Check className="w-4 h-4 text-emerald-500" /> SEO Premium e Imagens HD</li>
               </ul>
               <button onClick={() => handleSubscribe('Pro')} className="w-full py-3 rounded-xl bg-orange-500 text-white font-bold hover:bg-orange-600 transition-all shadow-lg shadow-orange-100">Assinar Agora</button>
             </div>
@@ -213,7 +209,7 @@ const PlansModal = ({ isOpen, onClose }: { isOpen: boolean; onClose: () => void 
 export default function App() { 
   const [session, setSession] = useState<any>(null); 
   const [isInitializing, setIsInitializing] = useState(true); 
-  const [credits, setCredits] = useState<number | null>(null);
+  const [profile, setProfile] = useState<UserProfile | null>(null);
   const [showPlansModal, setShowPlansModal] = useState(false);
   const [step, setStep] = useState<'input' | 'processing' | 'result'>('input');
   const [formData, setFormData] = useState<FormData>({ productName: '', marketplace: 'shopee', image: null });
@@ -231,57 +227,41 @@ export default function App() {
   }, []);
 
   useEffect(() => {
-    const loadCredits = async () => {
+    const loadProfile = async () => {
       if (!session?.user?.id) return;
-      const { data } = await supabase.from("profiles").select("credits").eq("id", session.user.id).single();
+      const { data } = await supabase.from("profiles").select("credits, plan_name, expires_at").eq("id", session.user.id).single();
       if (data) {
-        setCredits(data.credits);
-        if (data.credits <= 0) setShowPlansModal(true);
+        setProfile(data);
+        const daysLeft = calculateDaysLeft(data.expires_at);
+        
+        // Regra de Bloqueio do App
+        if (data.plan_name !== 'Gratuito' && daysLeft <= 0) {
+          setShowPlansModal(true);
+        } else if ((!data.plan_name || data.plan_name === 'Gratuito') && data.credits <= 0) {
+          setShowPlansModal(true);
+        }
       }
     };
-    loadCredits();
+    loadProfile();
   }, [session]);
-
-  useEffect(() => {
-    const checkLastListing = async () => {
-      try {
-        const listing = await get<LastListing>('last_listing');
-        if (listing && (Date.now() - listing.timestamp < 7 * 24 * 60 * 60 * 1000)) {
-          setHasLastListing(true);
-        } else {
-          await del('last_listing');
-        }
-      } catch (e) { console.error(e); }
-    };
-    checkLastListing();
-  }, []);
 
   const handleLogout = async () => { 
     await supabase.auth.signOut(); 
     setSession(null);
   };
 
-  const loadLastListing = async () => {
-    const listing = await get<LastListing>('last_listing');
-    if (listing) {
-      setFormData(listing.formData);
-      setAdProject(listing.adProject);
-      setGeneratedData(listing.generatedData);
-      setStep('result');
-    }
-  };
-
-  const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (file) {
-      const reader = new FileReader();
-      reader.onloadend = () => { setFormData({ ...formData, image: reader.result as string }); };
-      reader.readAsDataURL(file);
-    }
-  };
-
   const generateAIContent = async () => {
-    if (credits === null || credits <= 0) { setShowPlansModal(true); return; }
+    // Validação de segurança no momento do clique
+    const daysLeft = calculateDaysLeft(profile?.expires_at || null);
+    if (profile?.plan_name && profile.plan_name !== 'Gratuito' && daysLeft <= 0) {
+      alert("Seu plano expirou! Renove para continuar gerando.");
+      setShowPlansModal(true);
+      return;
+    }
+    if ((!profile?.plan_name || profile?.plan_name === 'Gratuito') && (profile?.credits === null || profile?.credits <= 0)) {
+      setShowPlansModal(true); 
+      return; 
+    }
 
     try {
       setError(null);
@@ -302,19 +282,11 @@ export default function App() {
       if (!currentTextData) {
         if (formData.marketplace === 'shopee') {
           setLoadingMessage('Criando SEO para Shopee...');
-          const seoSchema = {
-            type: Type.OBJECT,
-            properties: { title: { type: Type.STRING }, keywords: { type: Type.ARRAY, items: { type: Type.STRING } }, coverSuggestion: { type: Type.STRING }, description: { type: Type.STRING }, hashtags: { type: Type.ARRAY, items: { type: Type.STRING } } },
-            required: ["title", "keywords", "coverSuggestion", "description", "hashtags"]
-          };
+          const seoSchema = { type: Type.OBJECT, properties: { title: { type: Type.STRING }, keywords: { type: Type.ARRAY, items: { type: Type.STRING } }, coverSuggestion: { type: Type.STRING }, description: { type: Type.STRING }, hashtags: { type: Type.ARRAY, items: { type: Type.STRING } } }, required: ["title", "keywords", "coverSuggestion", "description", "hashtags"] };
           currentTextData = await safeGenerateTextJSON(`Especialista SEO Shopee para: ${formData.productName}`, seoSchema);
         } else {
           setLoadingMessage('Criando SEO para Mercado Livre...');
-          const mlSchema = {
-            type: Type.OBJECT,
-            properties: { title: { type: Type.STRING }, bullets: { type: Type.ARRAY, items: { type: Type.STRING } }, tags: { type: Type.ARRAY, items: { type: Type.STRING } }, description: { type: Type.STRING } },
-            required: ["title", "bullets", "tags", "description"]
-          };
+          const mlSchema = { type: Type.OBJECT, properties: { title: { type: Type.STRING }, bullets: { type: Type.ARRAY, items: { type: Type.STRING } }, tags: { type: Type.ARRAY, items: { type: Type.STRING } }, description: { type: Type.STRING } }, required: ["title", "bullets", "tags", "description"] };
           currentTextData = await safeGenerateTextJSON(`Especialista SEO ML para: ${formData.productName}`, mlSchema);
         }
       }
@@ -322,7 +294,6 @@ export default function App() {
       if (!currentImages || currentImages.length === 0) {
         setLoadingMessage('Gerando imagens profissionais...');
         const promptsData = await safeGenerateTextJSON(`Create 5 image prompts for: ${formData.productName}`, { type: Type.OBJECT, properties: { imagePrompts: { type: Type.ARRAY, items: { type: Type.STRING } } }, required: ["imagePrompts"] });
-        
         const base64Data = formData.image!.split(',')[1];
         const mimeType = formData.image!.match(/data:(.*?);/)?.[1] || 'image/jpeg';
 
@@ -333,19 +304,11 @@ export default function App() {
       }
 
       try {
-        await supabase.from('anuncios').insert([{
-          user_id: session.user.id,
-          product_name: formData.productName,
-          marketplace: formData.marketplace,
-          shopee_text: formData.marketplace === 'shopee' ? currentTextData : null,
-          ml_text: formData.marketplace === 'ml' ? currentTextData : null,
-          images: currentImages.filter(img => img !== null)
-        }]);
+        await supabase.from('anuncios').insert([{ user_id: session.user.id, product_name: formData.productName, marketplace: formData.marketplace, shopee_text: formData.marketplace === 'shopee' ? currentTextData : null, ml_text: formData.marketplace === 'ml' ? currentTextData : null, images: currentImages.filter(img => img !== null) }]);
       } catch (dbError) { console.error("Erro ao salvar no banco:", dbError); }
 
       const newAdProject = { ...adProject, productName: formData.productName, originalImage: formData.image, generatedImages: currentImages, shopeeText: formData.marketplace === 'shopee' ? currentTextData : adProject.shopeeText, mlText: formData.marketplace === 'ml' ? currentTextData : adProject.mlText };
       const newGeneratedData = { marketplace: formData.marketplace, images: currentImages, textData: currentTextData! };
-
       setAdProject(newAdProject);
       setGeneratedData(newGeneratedData);
       
@@ -354,9 +317,13 @@ export default function App() {
       await set('last_listing', { timestamp: Date.now(), formData: { ...formData, image: compressedOriginal }, adProject: { ...newAdProject, originalImage: compressedOriginal, generatedImages: compressedImages }, generatedData: { ...newGeneratedData, images: compressedImages } });
       setHasLastListing(true);
 
-      const newCredits = credits - 1;
-      await supabase.from("profiles").update({ credits: newCredits }).eq("id", session.user.id);
-      setCredits(newCredits);
+      // Desconta crédito só se for plano gratuito
+      if (!profile?.plan_name || profile.plan_name === 'Gratuito') {
+        const newCredits = (profile?.credits || 0) - 1;
+        await supabase.from("profiles").update({ credits: newCredits }).eq("id", session.user.id);
+        setProfile(prev => prev ? {...prev, credits: newCredits} : null);
+      }
+      
       setStep('result');
     } catch (err: any) { setError(err.message); setStep('input'); }
   };
@@ -372,18 +339,26 @@ export default function App() {
     saveAs(await zip.generateAsync({ type: 'blob' }), `AnuncioPro_${formData.productName}.zip`);
   };
 
+  const loadLastListing = async () => {
+    const listing = await get<LastListing>('last_listing');
+    if (listing) {
+      setFormData(listing.formData);
+      setAdProject(listing.adProject);
+      setGeneratedData(listing.generatedData);
+      setStep('result');
+    }
+  };
+
   if (!session) return <Login />;
 
   return (
-    // MUDANÇA DA COR DE FUNDO PRINCIPAL AQUI bg-[#0F172A]
     <div className="min-h-screen bg-[#0F172A] font-sans text-slate-900">
-      <Header handleLogout={handleLogout} credits={credits} />
+      <Header handleLogout={handleLogout} profile={profile} session={session} openPlans={() => setShowPlansModal(true)} />
       <main className="max-w-7xl mx-auto px-4 py-12">
         <AnimatePresence mode="wait">
           {step === 'input' && (
             <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="max-w-4xl mx-auto">
               <div className="text-center mb-12">
-                {/* Títulos em branco para contrastar com o azul */}
                 <h1 className="text-5xl font-black text-white mb-4 tracking-tight">Crie anúncios que vendem</h1>
                 <p className="text-slate-400 text-lg font-medium">SEO + Imagens otimizadas para Marketplaces.</p>
               </div>
