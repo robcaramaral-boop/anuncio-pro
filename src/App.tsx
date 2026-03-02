@@ -1,3 +1,4 @@
+import Landing from "./pages/Landing";
 import Login from "./pages/Login";
 import React, { useState, useRef, useEffect } from 'react';
 import { supabase } from "./lib/supabaseClient";
@@ -23,27 +24,10 @@ import {
   Star
 } from 'lucide-react';
 
-enum Type {
-  STRING = "STRING",
-  ARRAY = "ARRAY",
-  OBJECT = "OBJECT",
-}
-
-// --- Types ---
+enum Type { STRING = "STRING", ARRAY = "ARRAY", OBJECT = "OBJECT" }
 type Marketplace = 'shopee' | 'ml';
-
-interface FormData {
-  productName: string;
-  marketplace: Marketplace;
-  image: string | null;
-}
-
-interface UserProfile {
-  credits: number;
-  plan_name: string;
-  expires_at: string | null;
-}
-
+interface FormData { productName: string; marketplace: Marketplace; image: string | null; }
+interface UserProfile { credits: number; plan_name: string; expires_at: string | null; }
 interface ShopeeData { title: string; keywords: string[]; coverSuggestion: string; description: string; hashtags: string[]; }
 interface MLData { title: string; bullets: string[]; tags: string[]; description: string; }
 interface GeneratedData { marketplace: Marketplace; images: (string | null)[]; textData: ShopeeData | MLData; }
@@ -72,8 +56,6 @@ const calculateDaysLeft = (expiresAt: any) => {
   return Math.max(0, Math.ceil(diff / (1000 * 3600 * 24)));
 };
 
-// --- Components ---
-
 const Header = ({ handleLogout, profile, session, openPlans }: { handleLogout: () => void, profile: UserProfile | null, session: any, openPlans: () => void }) => {
   const [menuOpen, setMenuOpen] = useState(false);
   const daysLeft = calculateDaysLeft(profile?.expires_at);
@@ -98,19 +80,14 @@ const Header = ({ handleLogout, profile, session, openPlans }: { handleLogout: (
           )}
 
           <div className="relative">
-            <button 
-              onClick={() => setMenuOpen(!menuOpen)}
-              className="flex items-center gap-3 bg-slate-800/50 hover:bg-slate-800 border border-slate-700 px-3 py-1.5 rounded-full transition-colors"
-            >
+            <button onClick={() => setMenuOpen(!menuOpen)} className="flex items-center gap-3 bg-slate-800/50 hover:bg-slate-800 border border-slate-700 px-3 py-1.5 rounded-full transition-colors">
               <div className={`p-1 rounded-full flex items-center justify-center ${isPremium ? 'bg-gradient-to-tr from-orange-500 to-yellow-400' : 'bg-slate-600'}`}>
                 {isPremium ? <Star className="w-4 h-4 text-white fill-white" /> : <User className="w-4 h-4 text-white" />}
               </div>
               <div className="flex flex-col text-left hidden sm:flex">
                 <span className="text-xs font-bold text-white leading-none capitalize">{profile?.plan_name || 'Gratuito'}</span>
                 {isPremium ? (
-                   <span className={`text-[10px] font-bold leading-none mt-0.5 ${daysLeft <= 5 ? 'text-red-400' : 'text-emerald-400'}`}>
-                     {daysLeft} dias restantes
-                   </span>
+                   <span className={`text-[10px] font-bold leading-none mt-0.5 ${daysLeft <= 5 ? 'text-red-400' : 'text-emerald-400'}`}>{daysLeft} dias restantes</span>
                 ) : (
                    <span className="text-[10px] text-slate-400 leading-none mt-0.5">Fazer Upgrade</span>
                 )}
@@ -124,7 +101,6 @@ const Header = ({ handleLogout, profile, session, openPlans }: { handleLogout: (
                   <p className="text-xs text-slate-400 font-medium">Conectado como</p>
                   <p className="text-sm font-bold text-white truncate">{session?.user?.email}</p>
                 </div>
-                
                 <button onClick={() => { openPlans(); setMenuOpen(false); }} className="w-full text-left px-4 py-2.5 text-sm font-bold text-white hover:bg-slate-800 flex items-center gap-2 transition-colors">
                   <Sparkles className="w-4 h-4 text-orange-500" /> Mudar de Plano
                 </button>
@@ -144,10 +120,18 @@ const PlansModal = ({ isOpen, onClose }: { isOpen: boolean; onClose: () => void 
   const [billingCycle, setBillingCycle] = useState<'monthly' | 'yearly'>('monthly');
   if (!isOpen) return null;
 
-  const handleSubscribe = (plano: string) => {
-    const periodo = billingCycle === 'monthly' ? 'Mensal' : 'Anual';
-    const msg = encodeURIComponent(`Olá! Gostaria de assinar o plano ${plano} (${periodo}) do AnúncioPro.`);
-    window.open(`https://wa.me/5511999999999?text=${msg}`, '_blank');
+  const handleSubscribe = (planoId: 'lite' | 'pro') => {
+    const links = {
+      lite: {
+        monthly: "https://www.mercadopago.com.br/subscriptions/checkout?preapproval_plan_id=7ccc437ef0de4371a86214de9666ff33",
+        yearly: "https://www.mercadopago.com.br/subscriptions/checkout?preapproval_plan_id=d5a990d75b864cbdba6aa40291d87beb"
+      },
+      pro: {
+        monthly: "https://www.mercadopago.com.br/subscriptions/checkout?preapproval_plan_id=3b1349aedb414c32bea4e793b8055de0",
+        yearly: "https://www.mercadopago.com.br/subscriptions/checkout?preapproval_plan_id=12c250c9a5ae453fbd1a5ce0c4cc55bb"
+      }
+    };
+    window.open(links[planoId][billingCycle], '_blank');
   };
 
   const content = {
@@ -182,7 +166,7 @@ const PlansModal = ({ isOpen, onClose }: { isOpen: boolean; onClose: () => void 
                 <li className="flex items-center gap-2 text-sm text-orange-600 font-bold"><Check className="w-4 h-4" /> {content.lite.ads}</li>
                 <li className="flex items-center gap-2 text-sm text-slate-600 font-medium"><Check className="w-4 h-4 text-emerald-500" /> SEO Shopee e Mercado Livre</li>
               </ul>
-              <button onClick={() => handleSubscribe('Vendedor Lite')} className="w-full py-3 rounded-xl bg-slate-900 text-white font-bold hover:bg-slate-800 transition-all shadow-lg">Assinar Agora</button>
+              <button onClick={() => handleSubscribe('lite')} className="w-full py-3 rounded-xl bg-slate-900 text-white font-bold hover:bg-slate-800 transition-all shadow-lg">Assinar Agora</button>
             </div>
             <div className="border-2 border-orange-500 rounded-[20px] p-6 bg-orange-50/30 relative">
               <div className="absolute -top-3 right-6 bg-orange-500 text-white text-[10px] font-bold px-3 py-1 rounded-full uppercase">Mais Vendido</div>
@@ -192,7 +176,7 @@ const PlansModal = ({ isOpen, onClose }: { isOpen: boolean; onClose: () => void 
                 <li className="flex items-center gap-2 text-sm text-orange-600 font-bold"><Check className="w-4 h-4" /> {content.pro.ads}</li>
                 <li className="flex items-center gap-2 text-sm text-slate-800 font-bold"><Check className="w-4 h-4 text-emerald-500" /> SEO Premium e Imagens HD</li>
               </ul>
-              <button onClick={() => handleSubscribe('Pro')} className="w-full py-3 rounded-xl bg-orange-500 text-white font-bold hover:bg-orange-600 transition-all shadow-lg shadow-orange-100">Assinar Agora</button>
+              <button onClick={() => handleSubscribe('pro')} className="w-full py-3 rounded-xl bg-orange-500 text-white font-bold hover:bg-orange-600 transition-all shadow-lg shadow-orange-100">Assinar Agora</button>
             </div>
           </div>
           <button onClick={onClose} className="mt-8 text-sm text-slate-400 hover:text-slate-600 font-bold">Talvez mais tarde</button>
@@ -206,6 +190,7 @@ export default function App() {
   const [session, setSession] = useState<any>(null); 
   const [profile, setProfile] = useState<UserProfile | null>(null);
   const [showPlansModal, setShowPlansModal] = useState(false);
+  const [showLoginBox, setShowLoginBox] = useState(false); // <--- TRAVA DA LANDING PAGE
   const [step, setStep] = useState<'input' | 'processing' | 'result'>('input');
   const [formData, setFormData] = useState<FormData>({ productName: '', marketplace: 'shopee', image: null });
   const [adProject, setAdProject] = useState<AdProject>({ productName: '', originalImage: null, generatedImages: [], shopeeText: null, mlText: null });
@@ -240,7 +225,7 @@ export default function App() {
     loadProfile();
   }, [session]);
 
-  const handleLogout = async () => { await supabase.auth.signOut(); setSession(null); };
+  const handleLogout = async () => { await supabase.auth.signOut(); setSession(null); setShowLoginBox(false); };
 
   const generateAIContent = async () => {
     if (!profile) return;
@@ -323,7 +308,6 @@ export default function App() {
     if (listing) { setFormData(listing.formData); setAdProject(listing.adProject); setGeneratedData(listing.generatedData); setStep('result'); }
   };
 
-  // --- A FUNÇÃO QUE FALTAVA ESTÁ AQUI ---
   const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) { 
@@ -332,9 +316,12 @@ export default function App() {
       reader.readAsDataURL(file); 
     }
   };
-  // --------------------------------------
 
-  if (!session) return <Login />;
+  // --- SE NÃO TIVER LOGADO, MOSTRA A LANDING PAGE MAGNÍFICA ---
+  if (!session) {
+    if (showLoginBox) return <Login />;
+    return <Landing onLoginClick={() => setShowLoginBox(true)} />;
+  }
 
   return (
     <div className="min-h-screen bg-[#0F172A] font-sans text-slate-900">
@@ -429,7 +416,6 @@ export default function App() {
   );
 }
 
-// --- Cards Bonitos ---
 const ShopeeResultCard = ({ data }: { data: ShopeeData }) => {
   const [copied, setCopied] = useState(false);
   const copyToClipboard = () => {
