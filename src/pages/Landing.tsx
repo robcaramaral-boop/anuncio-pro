@@ -15,12 +15,12 @@ export default function Landing({ onLoginClick }: LandingProps) {
   // SEUS LINKS AUTOMÁTICOS DO MERCADO PAGO
   const links = {
     lite: {
-      monthly: "https://pay.kiwify.com.br/foa1Byp",
-      yearly: "https://pay.kiwify.com.br/VJmBD9m"
+      monthly: "https://pay.kiwify.com.br/DSQXy6V",
+      yearly: "https://pay.kiwify.com.br/nXSrYRj"
     },
     pro: {
-      monthly: "https://pay.kiwify.com.br/9zha5fF",
-      yearly: "https://pay.kiwify.com.br/4yiGObt"
+      monthly: "https://pay.kiwify.com.br/G06X7TB",
+      yearly: "https://pay.kiwify.com.br/7Qyje9t"
     }
   };
 
