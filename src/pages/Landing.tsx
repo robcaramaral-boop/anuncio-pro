@@ -27,11 +27,11 @@ export default function Landing({ onLoginClick }: LandingProps) {
   const content = {
     lite: {
       price: billingCycle === 'monthly' ? '49,90' : '497,00',
-      ads: billingCycle === 'monthly' ? '15 anúncios/mês' : '180 anúncios/ano'
+      ads: billingCycle === 'monthly' ? '20 anúncios/mês' : '240 anúncios/ano'
     },
     pro: {
       price: billingCycle === 'monthly' ? '97,00' : '967,00',
-      ads: billingCycle === 'monthly' ? '60 anúncios/mês' : '720 anúncios/ano'
+      ads: billingCycle === 'monthly' ? '50 anúncios/mês' : '600 anúncios/ano'
     }
   };
 
@@ -60,13 +60,21 @@ export default function Landing({ onLoginClick }: LandingProps) {
           </div>
 
           {/* ✅ Aqui fica só o Acessar Sistema */}
-          <button
-            onClick={onLoginClick}
-            className="text-sm font-bold text-slate-300 hover:text-white transition-colors border border-slate-700 hover:border-slate-500 px-6 py-2.5 rounded-full"
-          >
-            Acessar Sistema
-          </button>
-        </div>
+         <div className="flex items-center gap-3">
+  <button
+    onClick={onLoginClick}
+    className="bg-orange-500 hover:bg-orange-600 text-white px-6 py-2.5 rounded-full text-sm font-bold transition-all shadow-lg shadow-orange-500/20"
+  >
+    TESTE GRÁTIS
+  </button>
+
+  <button
+    onClick={onLoginClick}
+    className="text-sm font-bold text-slate-300 hover:text-white transition-colors border border-slate-700 hover:border-slate-500 px-6 py-2.5 rounded-full"
+  >
+    Acessar Sistema
+  </button>
+</div>
       </header>
 
       {/* HERO SECTION */}
