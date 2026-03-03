@@ -48,34 +48,36 @@ export default function Landing({ onLoginClick }: LandingProps) {
     <div className="min-h-screen bg-[#0F172A] font-sans text-slate-50 selection:bg-orange-500 selection:text-white overflow-x-hidden">
 
       {/* HEADER */}
-      <header className="fixed top-0 left-0 right-0 z-50 bg-[#0F172A]/90 backdrop-blur-md border-b border-slate-800">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-20 flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <div className="bg-orange-500 p-2.5 rounded-xl shadow-lg shadow-orange-500/20">
-              <Package className="w-6 h-6 text-white" />
-            </div>
-            <span className="text-2xl font-black text-white tracking-tight">
-              Anúncio<span className="text-orange-500">Pro</span>
-            </span>
-          </div>
+<header className="fixed top-0 left-0 right-0 z-50 bg-[#0F172A]/90 backdrop-blur-md border-b border-slate-800">
+  <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-20 flex items-center justify-between">
+    {/* Logo */}
+    <div className="flex items-center gap-2">
+      <div className="bg-orange-500 p-2.5 rounded-xl shadow-lg shadow-orange-500/20">
+        <Package className="w-6 h-6 text-white" />
+      </div>
+      <span className="text-2xl font-black text-white tracking-tight">
+        Anúncio<span className="text-orange-500">Pro</span>
+      </span>
+    </div>
 
-          {/* ✅ Aqui fica só o Acessar Sistema */}
-         <div className="flex items-center gap-3">
-  <button
-    onClick={onLoginClick}
-    className="bg-orange-500 hover:bg-orange-600 text-white px-6 py-2.5 rounded-full text-sm font-bold transition-all shadow-lg shadow-orange-500/20"
-  >
-    TESTE GRÁTIS
-  </button>
+    {/* Botões */}
+    <div className="flex items-center gap-3">
+      <button
+        onClick={onLoginClick}
+        className="text-sm font-black text-white bg-orange-500 hover:bg-orange-600 transition-colors px-6 py-2.5 rounded-full shadow-lg shadow-orange-500/20"
+      >
+        TESTE GRÁTIS
+      </button>
 
-  <button
-    onClick={onLoginClick}
-    className="text-sm font-bold text-slate-300 hover:text-white transition-colors border border-slate-700 hover:border-slate-500 px-6 py-2.5 rounded-full"
-  >
-    Acessar Sistema
-  </button>
-</div>
-      </header>
+      <button
+        onClick={onLoginClick}
+        className="text-sm font-bold text-slate-300 hover:text-white transition-colors border border-slate-700 hover:border-slate-500 px-6 py-2.5 rounded-full"
+      >
+        Acessar Sistema
+      </button>
+    </div>
+  </div>
+</header>
 
       {/* HERO SECTION */}
       <section className="pt-40 pb-20 px-4 relative">
