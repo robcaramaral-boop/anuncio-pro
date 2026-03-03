@@ -13,7 +13,15 @@ export default async function handler(req, res) {
     const token =
       (req.headers.authorization || "").replace("Bearer ", "") ||
       (req.query.token || "");
-
+console.log("WEBHOOK HIT ✅");
+console.log("TOKEN_RECEBIDO:", token);
+console.log("TOKEN_ENV_EXISTE:", !!process.env.KIWIFY_WEBHOOK_TOKEN);
+console.log(
+  "TOKEN_ENV_PREFIXO:",
+  process.env.KIWIFY_WEBHOOK_TOKEN
+    ? process.env.KIWIFY_WEBHOOK_TOKEN.slice(0, 6) + "..."
+    : null
+);
     if (token !== process.env.KIWIFY_WEBHOOK_TOKEN) {
       return res.status(401).send("Unauthorized");
     }
