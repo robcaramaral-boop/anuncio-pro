@@ -15,12 +15,12 @@ export default function Landing({ onLoginClick }: LandingProps) {
   // SEUS LINKS AUTOMÁTICOS DO MERCADO PAGO
   const links = {
     lite: {
-      monthly: "https://www.mercadopago.com.br/subscriptions/checkout?preapproval_plan_id=7ccc437ef0de4371a86214de9666ff33",
-      yearly: "https://www.mercadopago.com.br/subscriptions/checkout?preapproval_plan_id=d5a990d75b864cbdba6aa40291d87beb"
+      monthly: "https://pay.kiwify.com.br/foa1Byp",
+      yearly: "https://pay.kiwify.com.br/VJmBD9m"
     },
     pro: {
-      monthly: "https://www.mercadopago.com.br/subscriptions/checkout?preapproval_plan_id=3b1349aedb414c32bea4e793b8055de0",
-      yearly: "https://www.mercadopago.com.br/subscriptions/checkout?preapproval_plan_id=12c250c9a5ae453fbd1a5ce0c4cc55bb"
+      monthly: "https://pay.kiwify.com.br/9zha5fF",
+      yearly: "https://pay.kiwify.com.br/4yiGObt"
     }
   };
 
