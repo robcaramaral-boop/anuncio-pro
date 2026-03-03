@@ -1,10 +1,8 @@
 import { createClient } from "@supabase/supabase-js";
 
 export default async function handler(req, res) {
-  // A Kiwify envia POST
   if (req.method !== "POST") return res.status(405).send("Method Not Allowed");
 
-  // Token (header ou query)
   const token =
     (req.headers.authorization || "").replace("Bearer ", "") ||
     (req.query.token || "");
@@ -13,7 +11,6 @@ export default async function handler(req, res) {
     return res.status(401).send("Unauthorized");
   }
 
-  // Supabase (server)
   const supabase = createClient(
     process.env.SUPABASE_URL,
     process.env.SUPABASE_SERVICE_ROLE_KEY
@@ -21,7 +18,6 @@ export default async function handler(req, res) {
 
   const payload = req.body;
 
-  // Pegadores "flexíveis" (ajustamos depois conforme JSON real da Kiwify)
   const statusRaw = String(payload?.status ?? payload?.order_status ?? "").toLowerCase();
   const email =
     payload?.customer?.email ??
@@ -38,7 +34,6 @@ export default async function handler(req, res) {
 
   if (!email) return res.status(400).send("Missing email");
 
-  // Regras básicas
   const isActive = ["paid", "approved", "active", "completed"].includes(statusRaw);
   const finalStatus = isActive ? "active" : "inactive";
 
