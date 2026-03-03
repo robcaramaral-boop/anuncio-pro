@@ -1,5 +1,6 @@
 import Landing from "./pages/Landing";
 import Login from "./pages/Login";
+import { userIsActive } from "./lib/access";
 import React, { useState, useRef, useEffect } from 'react';
 import { supabase } from "./lib/supabaseClient";
 import { motion, AnimatePresence } from 'motion/react';
@@ -70,7 +71,7 @@ const Header = ({ handleLogout, profile, session, openPlans }: { handleLogout: (
           </div>
           <span className="text-xl font-bold text-white tracking-tight hidden sm:block">Anúncio<span className="text-orange-500">Pro</span></span>
         </div>
-        
+
         <div className="flex items-center gap-3">
           {!isPremium && profile && profile.credits !== undefined && (
             <div className="bg-orange-500/10 text-orange-500 px-3 py-1.5 rounded-full text-sm font-bold flex items-center gap-1.5 border border-orange-500/20">
@@ -87,9 +88,9 @@ const Header = ({ handleLogout, profile, session, openPlans }: { handleLogout: (
               <div className="flex flex-col text-left hidden sm:flex">
                 <span className="text-xs font-bold text-white leading-none capitalize">{profile?.plan_name || 'Gratuito'}</span>
                 {isPremium ? (
-                   <span className={`text-[10px] font-bold leading-none mt-0.5 ${daysLeft <= 5 ? 'text-red-400' : 'text-emerald-400'}`}>{daysLeft} dias restantes</span>
+                  <span className={`text-[10px] font-bold leading-none mt-0.5 ${daysLeft <= 5 ? 'text-red-400' : 'text-emerald-400'}`}>{daysLeft} dias restantes</span>
                 ) : (
-                   <span className="text-[10px] text-slate-400 leading-none mt-0.5">Fazer Upgrade</span>
+                  <span className="text-[10px] text-slate-400 leading-none mt-0.5">Fazer Upgrade</span>
                 )}
               </div>
               <ChevronDown className="w-4 h-4 text-slate-400" />
@@ -186,11 +187,16 @@ const PlansModal = ({ isOpen, onClose }: { isOpen: boolean; onClose: () => void 
   );
 };
 
-export default function App() { 
-  const [session, setSession] = useState<any>(null); 
+export default function App() {
+  const [session, setSession] = useState<any>(null);
   const [profile, setProfile] = useState<UserProfile | null>(null);
   const [showPlansModal, setShowPlansModal] = useState(false);
   const [showLoginBox, setShowLoginBox] = useState(false); // <--- TRAVA DA LANDING PAGE
+
+  // ✅ NOVO: trava de acesso por assinatura/active
+  const [isActive, setIsActive] = useState(false);
+  const [checkingAccess, setCheckingAccess] = useState(true);
+
   const [step, setStep] = useState<'input' | 'processing' | 'result'>('input');
   const [formData, setFormData] = useState<FormData>({ productName: '', marketplace: 'shopee', image: null });
   const [adProject, setAdProject] = useState<AdProject>({ productName: '', originalImage: null, generatedImages: [], shopeeText: null, mlText: null });
@@ -206,14 +212,34 @@ export default function App() {
     return () => { listener.subscription.unsubscribe(); };
   }, []);
 
+  // ✅ NOVO: quando logar, checa se está active em user_access
+  useEffect(() => {
+    const run = async () => {
+      if (!session) {
+        setIsActive(false);
+        setCheckingAccess(false);
+        return;
+      }
+      setCheckingAccess(true);
+      try {
+        const ok = await userIsActive();
+        setIsActive(ok);
+      } catch (e) {
+        setIsActive(false);
+      }
+      setCheckingAccess(false);
+    };
+    run();
+  }, [session]);
+
   useEffect(() => {
     const loadProfile = async () => {
       if (!session?.user?.id) return;
       try {
         const { data, error } = await supabase.from("profiles").select("credits, plan_name, expires_at").eq("id", session.user.id).single();
         if (error) {
-           const fallback = await supabase.from("profiles").select("credits").eq("id", session.user.id).single();
-           if (fallback.data) setProfile({ credits: fallback.data.credits, plan_name: 'Gratuito', expires_at: null });
+          const fallback = await supabase.from("profiles").select("credits").eq("id", session.user.id).single();
+          if (fallback.data) setProfile({ credits: fallback.data.credits, plan_name: 'Gratuito', expires_at: null });
         } else if (data) {
           setProfile(data as UserProfile);
           const daysLeft = calculateDaysLeft(data.expires_at);
@@ -238,10 +264,10 @@ export default function App() {
     try {
       setError(null); setStep('processing');
       const safeGenerateTextJSON = async (prompt: string, schema: any) => {
-         const { data } = await supabase.functions.invoke('gerar-anuncio', { body: { action: 'generateText', prompt, schema } });
-         let text = data.text || '{}';
-         const start = text.indexOf('{'), end = text.lastIndexOf('}');
-         return JSON.parse(text.substring(start, end + 1).replace(/[\u0000-\u001F]+/g, " "));
+        const { data } = await supabase.functions.invoke('gerar-anuncio', { body: { action: 'generateText', prompt, schema } });
+        let text = data.text || '{}';
+        const start = text.indexOf('{'), end = text.lastIndexOf('}');
+        return JSON.parse(text.substring(start, end + 1).replace(/[\u0000-\u001F]+/g, " "));
       };
 
       let isNewProject = (formData.productName !== adProject.productName || formData.image !== adProject.originalImage);
@@ -272,15 +298,36 @@ export default function App() {
         }));
       }
 
-      try { await supabase.from('anuncios').insert([{ user_id: session.user.id, product_name: formData.productName, marketplace: formData.marketplace, shopee_text: formData.marketplace === 'shopee' ? currentTextData : null, ml_text: formData.marketplace === 'ml' ? currentTextData : null, images: currentImages.filter(img => img !== null) }]); } catch (e) { }
+      try {
+        await supabase.from('anuncios').insert([{
+          user_id: session.user.id,
+          product_name: formData.productName,
+          marketplace: formData.marketplace,
+          shopee_text: formData.marketplace === 'shopee' ? currentTextData : null,
+          ml_text: formData.marketplace === 'ml' ? currentTextData : null,
+          images: currentImages.filter(img => img !== null)
+        }]);
+      } catch (e) { }
 
-      const newAdProject = { ...adProject, productName: formData.productName, originalImage: formData.image, generatedImages: currentImages, shopeeText: formData.marketplace === 'shopee' ? currentTextData : adProject.shopeeText, mlText: formData.marketplace === 'ml' ? currentTextData : adProject.mlText };
+      const newAdProject = {
+        ...adProject,
+        productName: formData.productName,
+        originalImage: formData.image,
+        generatedImages: currentImages,
+        shopeeText: formData.marketplace === 'shopee' ? currentTextData : adProject.shopeeText,
+        mlText: formData.marketplace === 'ml' ? currentTextData : adProject.mlText
+      };
       const newGeneratedData = { marketplace: formData.marketplace, images: currentImages, textData: currentTextData! };
       setAdProject(newAdProject); setGeneratedData(newGeneratedData);
-      
+
       const compressedImages = await Promise.all(currentImages.map(async (img) => img ? await compressImageToWebP(img, 0.8) : null));
       const compressedOriginal = formData.image ? await compressImageToWebP(formData.image, 0.8) : null;
-      await set('last_listing', { timestamp: Date.now(), formData: { ...formData, image: compressedOriginal }, adProject: { ...newAdProject, originalImage: compressedOriginal, generatedImages: compressedImages }, generatedData: { ...newGeneratedData, images: compressedImages } });
+      await set('last_listing', {
+        timestamp: Date.now(),
+        formData: { ...formData, image: compressedOriginal },
+        adProject: { ...newAdProject, originalImage: compressedOriginal, generatedImages: compressedImages },
+        generatedData: { ...newGeneratedData, images: compressedImages }
+      });
       setHasLastListing(true);
 
       if (isFree) {
@@ -299,7 +346,7 @@ export default function App() {
     const zip = new JSZip();
     const data = generatedData.textData as any;
     zip.file(`SEO.txt`, `TÍTULO: ${data.title}\nDESCRIÇÃO: ${data.description}`);
-    generatedData.images.forEach((img, i) => img && zip.file(`imagem_${i+1}.png`, img.split(',')[1], { base64: true }));
+    generatedData.images.forEach((img, i) => img && zip.file(`imagem_${i + 1}.png`, img.split(',')[1], { base64: true }));
     saveAs(await zip.generateAsync({ type: 'blob' }), `AnuncioPro_${formData.productName}.zip`);
   };
 
@@ -310,10 +357,10 @@ export default function App() {
 
   const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
-    if (file) { 
-      const reader = new FileReader(); 
-      reader.onloadend = () => setFormData({ ...formData, image: reader.result as string }); 
-      reader.readAsDataURL(file); 
+    if (file) {
+      const reader = new FileReader();
+      reader.onloadend = () => setFormData({ ...formData, image: reader.result as string });
+      reader.readAsDataURL(file);
     }
   };
 
@@ -321,6 +368,16 @@ export default function App() {
   if (!session) {
     if (showLoginBox) return <Login />;
     return <Landing onLoginClick={() => setShowLoginBox(true)} />;
+  }
+
+  // ✅ NOVO: LOGADO, MAS AINDA CHECANDO ACESSO
+  if (checkingAccess) {
+    return <div style={{ padding: 24, color: "white" }}>Verificando assinatura...</div>;
+  }
+
+  // ✅ NOVO: LOGADO, MAS NÃO ESTÁ ATIVO
+  if (!isActive) {
+    return <Landing onLoginClick={() => setShowPlansModal(true)} />;
   }
 
   return (
@@ -339,11 +396,11 @@ export default function App() {
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-10">
                     <div className="space-y-6">
                       <label className="block text-sm font-bold text-slate-700">Nome do Produto *</label>
-                      <input type="text" required className="w-full p-4 rounded-xl border border-slate-200 outline-none focus:ring-2 focus:ring-orange-500 bg-slate-50 text-slate-900" value={formData.productName} onChange={e => setFormData({...formData, productName: e.target.value})} />
+                      <input type="text" required className="w-full p-4 rounded-xl border border-slate-200 outline-none focus:ring-2 focus:ring-orange-500 bg-slate-50 text-slate-900" value={formData.productName} onChange={e => setFormData({ ...formData, productName: e.target.value })} />
                       <label className="block text-sm font-bold text-slate-700">Marketplace</label>
                       <div className="flex gap-4">
                         {['shopee', 'ml'].map(m => (
-                          <button key={m} type="button" onClick={() => setFormData({...formData, marketplace: m as Marketplace})} className={`flex-1 p-4 rounded-xl border font-bold transition-all ${formData.marketplace === m ? 'bg-orange-500 border-orange-500 text-white shadow-lg shadow-orange-500/30' : 'bg-white text-slate-500 hover:border-slate-300 hover:bg-slate-50'}`}>
+                          <button key={m} type="button" onClick={() => setFormData({ ...formData, marketplace: m as Marketplace })} className={`flex-1 p-4 rounded-xl border font-bold transition-all ${formData.marketplace === m ? 'bg-orange-500 border-orange-500 text-white shadow-lg shadow-orange-500/30' : 'bg-white text-slate-500 hover:border-slate-300 hover:bg-slate-50'}`}>
                             {m === 'shopee' ? 'Shopee' : 'Mercado Livre'}
                           </button>
                         ))}
@@ -355,7 +412,7 @@ export default function App() {
                     </div>
                   </div>
                   <div className="flex justify-end gap-4 pt-6 border-t border-slate-100">
-                    {hasLastListing && <button type="button" onClick={loadLastListing} className="p-4 rounded-xl border border-slate-200 font-bold hover:bg-slate-50 flex items-center gap-2 text-slate-700"><History className="w-5 h-5"/> Último Anúncio</button>}
+                    {hasLastListing && <button type="button" onClick={loadLastListing} className="p-4 rounded-xl border border-slate-200 font-bold hover:bg-slate-50 flex items-center gap-2 text-slate-700"><History className="w-5 h-5" /> Último Anúncio</button>}
                     <button type="submit" className="bg-orange-500 hover:bg-orange-600 text-white p-4 px-10 rounded-xl font-black shadow-lg shadow-orange-500/30 transition-all flex items-center gap-2">
                       <Sparkles className="w-5 h-5" /> Gerar Anúncio com IA
                     </button>
@@ -378,7 +435,7 @@ export default function App() {
 
           {step === 'result' && generatedData && (
             <div className="max-w-6xl mx-auto space-y-10">
-               <div className="flex flex-col md:flex-row justify-between items-center gap-6">
+              <div className="flex flex-col md:flex-row justify-between items-center gap-6">
                 <div>
                   <h2 className="text-3xl font-black text-white">Anúncio Pronto!</h2>
                   <p className="text-slate-400 font-medium">SEO e Imagens geradas para {generatedData.marketplace === 'ml' ? 'Mercado Livre' : 'Shopee'}</p>
@@ -428,14 +485,14 @@ const ShopeeResultCard = ({ data }: { data: ShopeeData }) => {
   return (
     <div className="space-y-8">
       <div className="flex justify-between items-center border-b border-slate-100 pb-4">
-         <h3 className="font-black text-slate-900 flex items-center gap-2"><ShoppingBag className="w-5 h-5 text-orange-500" /> SEO Especialista - Shopee</h3>
-         <button onClick={copyToClipboard} className="flex items-center gap-1.5 text-sm font-bold text-slate-600 hover:text-orange-600 transition-colors bg-slate-50 px-4 py-2 rounded-lg border border-slate-200 shadow-sm">
-           {copied ? <Check className="w-4 h-4 text-emerald-500" /> : <Copy className="w-4 h-4" />} {copied ? 'Copiado!' : 'Copiar Tudo'}
-         </button>
+        <h3 className="font-black text-slate-900 flex items-center gap-2"><ShoppingBag className="w-5 h-5 text-orange-500" /> SEO Especialista - Shopee</h3>
+        <button onClick={copyToClipboard} className="flex items-center gap-1.5 text-sm font-bold text-slate-600 hover:text-orange-600 transition-colors bg-slate-50 px-4 py-2 rounded-lg border border-slate-200 shadow-sm">
+          {copied ? <Check className="w-4 h-4 text-emerald-500" /> : <Copy className="w-4 h-4" />} {copied ? 'Copiado!' : 'Copiar Tudo'}
+        </button>
       </div>
       <div><span className="text-[10px] font-black text-orange-500 uppercase tracking-widest mb-2 block">Título Otimizado</span><div className="bg-slate-50 p-4 rounded-xl border border-slate-100 font-bold text-slate-900">{data.title}</div></div>
       <div><span className="text-[10px] font-black text-orange-500 uppercase tracking-widest mb-2 block">Descrição</span><div className="bg-slate-50 p-4 rounded-xl border border-slate-100 text-slate-600 whitespace-pre-wrap text-sm leading-relaxed">{data.description}</div></div>
-      <div><span className="text-[10px] font-black text-orange-500 uppercase tracking-widest mb-2 block">Hashtags</span><div className="flex flex-wrap gap-2">{data.hashtags?.map((h, i) => <span key={i} className="text-orange-600 bg-orange-50 px-2 py-1 rounded-md border border-orange-100 font-bold text-sm">#{h.replace('#','')}</span>)}</div></div>
+      <div><span className="text-[10px] font-black text-orange-500 uppercase tracking-widest mb-2 block">Hashtags</span><div className="flex flex-wrap gap-2">{data.hashtags?.map((h, i) => <span key={i} className="text-orange-600 bg-orange-50 px-2 py-1 rounded-md border border-orange-100 font-bold text-sm">#{h.replace('#', '')}</span>)}</div></div>
     </div>
   );
 };
@@ -452,10 +509,10 @@ const MLResultCard = ({ data }: { data: MLData }) => {
   return (
     <div className="space-y-8">
       <div className="flex justify-between items-center border-b border-slate-100 pb-4">
-         <h3 className="font-black text-slate-900 flex items-center gap-2"><Store className="w-5 h-5 text-yellow-500" /> SEO Platinum - Mercado Livre</h3>
-         <button onClick={copyToClipboard} className="flex items-center gap-1.5 text-sm font-bold text-slate-600 hover:text-yellow-600 transition-colors bg-slate-50 px-4 py-2 rounded-lg border border-slate-200 shadow-sm">
-           {copied ? <Check className="w-4 h-4 text-emerald-500" /> : <Copy className="w-4 h-4" />} {copied ? 'Copiado!' : 'Copiar Tudo'}
-         </button>
+        <h3 className="font-black text-slate-900 flex items-center gap-2"><Store className="w-5 h-5 text-yellow-500" /> SEO Platinum - Mercado Livre</h3>
+        <button onClick={copyToClipboard} className="flex items-center gap-1.5 text-sm font-bold text-slate-600 hover:text-yellow-600 transition-colors bg-slate-50 px-4 py-2 rounded-lg border border-slate-200 shadow-sm">
+          {copied ? <Check className="w-4 h-4 text-emerald-500" /> : <Copy className="w-4 h-4" />} {copied ? 'Copiado!' : 'Copiar Tudo'}
+        </button>
       </div>
       <div><span className="text-[10px] font-black text-orange-500 uppercase tracking-widest mb-2 block">Título Otimizado</span><div className="bg-slate-50 p-4 rounded-xl border border-slate-100 font-bold text-slate-900">{data.title}</div></div>
       <div><span className="text-[10px] font-black text-orange-500 uppercase tracking-widest mb-2 block">Bullet Points</span><ul className="space-y-2">{data.bullets?.map((b, i) => <li key={i} className="text-sm text-slate-700 bg-orange-50/50 p-3 rounded-lg border border-orange-100 flex items-start gap-2 font-medium"> <Check className="w-4 h-4 text-orange-500 shrink-0 mt-0.5" /> {b}</li>)}</ul></div>
