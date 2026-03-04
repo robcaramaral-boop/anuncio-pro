@@ -168,7 +168,7 @@ export default function Landing({ onLoginClick }: LandingProps) {
         <div className="max-w-7xl mx-auto px-4">
           <div className="text-center mb-16">
             <h2 className="text-3xl md:text-4xl font-black text-white uppercase tracking-tight mb-4">Como funciona o nosso sistema</h2>
-            <p className="text-slate-400 font-medium max-w-2xl mx-auto">Um novo modelo de negócio: você só digita o nome do produto e a nossa Inteligência Artificial faz todo o trabalho duro para você.</p>
+            <p className="text-slate-400 font-medium max-w-2xl mx-auto">Um novo modelo de negócio: você só digita o nome do produto e o nosso Aplicativo faz todo o trabalho duro para você.</p>
           </div>
 
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-16 items-center">
