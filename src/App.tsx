@@ -10,7 +10,7 @@ import { get, set, del } from 'idb-keyval';
 import {
   UploadCloud,
   Package,
-  Image as ImageIcon,
+  ImageIcon,
   Download,
   Loader2,
   ShoppingBag,
@@ -25,6 +25,7 @@ import {
   Star
 } from 'lucide-react';
 
+// --- UTILITÁRIOS ---
 enum Type { STRING = "STRING", ARRAY = "ARRAY", OBJECT = "OBJECT" }
 type Marketplace = 'shopee' | 'ml';
 interface FormData { productName: string; marketplace: Marketplace; image: string | null; }
@@ -57,6 +58,7 @@ const calculateDaysLeft = (expiresAt: any) => {
   return Math.max(0, Math.ceil(diff / (1000 * 3600 * 24)));
 };
 
+// --- COMPONENTES DE INTERFACE ---
 const Header = ({ handleLogout, profile, session, openPlans }: { handleLogout: () => void, profile: UserProfile | null, session: any, openPlans: () => void }) => {
   const [menuOpen, setMenuOpen] = useState(false);
   const daysLeft = calculateDaysLeft(profile?.expires_at);
@@ -187,13 +189,14 @@ const PlansModal = ({ isOpen, onClose }: { isOpen: boolean; onClose: () => void 
   );
 };
 
+// --- APP PRINCIPAL ---
 export default function App() {
   const [session, setSession] = useState<any>(null);
   const [profile, setProfile] = useState<UserProfile | null>(null);
   const [showPlansModal, setShowPlansModal] = useState(false);
-  const [showLoginBox, setShowLoginBox] = useState(false); // <--- TRAVA DA LANDING PAGE
+  const [showLoginBox, setShowLoginBox] = useState(false);
 
-  // ✅ NOVO: trava de acesso por assinatura/active
+  // ✅ TRAVAS DE ACESSO REVISADAS
   const [isActive, setIsActive] = useState(false);
   const [checkingAccess, setCheckingAccess] = useState(true);
 
@@ -212,24 +215,27 @@ export default function App() {
     return () => { listener.subscription.unsubscribe(); };
   }, []);
 
-  // ✅ NOVO: quando logar, checa se está active em user_access
+  // ✅ CORREÇÃO: Checa se o usuário está ativo mas evita loop no login
   useEffect(() => {
-    const run = async () => {
+    const checkUserAccess = async () => {
       if (!session) {
         setIsActive(false);
         setCheckingAccess(false);
         return;
       }
+      
       setCheckingAccess(true);
       try {
         const ok = await userIsActive();
         setIsActive(ok);
       } catch (e) {
-        setIsActive(false);
+        console.error("Erro ao verificar acesso:", e);
+        setIsActive(false); 
+      } finally {
+        setCheckingAccess(false);
       }
-      setCheckingAccess(false);
     };
-    run();
+    checkUserAccess();
   }, [session]);
 
   useEffect(() => {
@@ -364,18 +370,24 @@ export default function App() {
     }
   };
 
-  // --- SE NÃO TIVER LOGADO, MOSTRA A LANDING PAGE MAGNÍFICA ---
+  // ✅ LOGICA DE ROTEAMENTO REVISADA
   if (!session) {
     if (showLoginBox) return <Login />;
     return <Landing onLoginClick={() => setShowLoginBox(true)} />;
   }
 
-  // ✅ NOVO: LOGADO, MAS AINDA CHECANDO ACESSO
   if (checkingAccess) {
-    return <div style={{ padding: 24, color: "white" }}>Verificando assinatura...</div>;
+    return (
+      <div className="min-h-screen bg-[#0F172A] flex items-center justify-center">
+        <div className="text-center">
+          <Loader2 className="w-12 h-12 text-orange-500 animate-spin mx-auto mb-4" />
+          <p className="text-white font-bold">Validando sua entrada...</p>
+        </div>
+      </div>
+    );
   }
 
-  // ✅ NOVO: LOGADO, MAS NÃO ESTÁ ATIVO
+  // Se logado mas sem assinatura ativa, volta para a landing mas com o modal de planos aberto
   if (!isActive) {
     return <Landing onLoginClick={() => setShowPlansModal(true)} />;
   }
@@ -473,6 +485,7 @@ export default function App() {
   );
 }
 
+// --- CARDS DE RESULTADO ---
 const ShopeeResultCard = ({ data }: { data: ShopeeData }) => {
   const [copied, setCopied] = useState(false);
   const copyToClipboard = () => {
