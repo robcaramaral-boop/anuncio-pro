@@ -75,7 +75,8 @@ const Header = ({ handleLogout, profile, session, openPlans }: { handleLogout: (
         </div>
 
         <div className="flex items-center gap-3">
-          {!isPremium && profile && profile.credits !== undefined && (
+          {/* ✅ MOSTRA OS CRÉDITOS PARA TODOS OS USUÁRIOS */}
+          {profile && profile.credits !== undefined && (
             <div className="bg-orange-500/10 text-orange-500 px-3 py-1.5 rounded-full text-sm font-bold flex items-center gap-1.5 border border-orange-500/20">
               <Sparkles className="w-4 h-4" />
               {profile.credits} Créditos
@@ -267,11 +268,13 @@ export default function App() {
       return;
     }
 
-    // Se for usuário gratuito e os créditos acabaram, trava.
-    if (isFree && profile.credits <= 0) { 
+    // ✅ BLOQUEIO POR FALTA DE CRÉDITOS PARA TODOS OS PLANOS
+    // Se os créditos acabaram (seja grátis ou plano pago), trava.
+    if (profile.credits <= 0) { 
       setShowPlansModal(true); 
       return; 
     }
+
     try {
       setError(null); setStep('processing');
       const safeGenerateTextJSON = async (prompt: string, schema: any) => {
@@ -341,11 +344,11 @@ export default function App() {
       });
       setHasLastListing(true);
 
-      if (isFree) {
-        const newCredits = profile.credits - 1;
-        await supabase.from("profiles").update({ credits: newCredits }).eq("id", session.user.id);
-        setProfile({ ...profile, credits: newCredits });
-      }
+      // ✅ DESCONTA 1 CRÉDITO DE TODOS OS USUÁRIOS APÓS GERAR O ANÚNCIO
+      const newCredits = profile.credits - 1;
+      await supabase.from("profiles").update({ credits: newCredits }).eq("id", session.user.id);
+      setProfile({ ...profile, credits: newCredits });
+
       setStep('result');
     } catch (err: any) { setError(err.message); setStep('input'); }
   };
