@@ -256,19 +256,22 @@ export default function App() {
   const handleLogout = async () => { await supabase.auth.signOut(); setSession(null); setShowLoginBox(false); };
 
   const generateAIContent = async () => {
-    // ✅ NOVA LÓGICA DE TRAVA: Impede a geração de anúncio se o plano não estiver ativo
-    if (!isActive) {
+    if (!profile) return;
+
+    const isFree = !profile.plan_name || profile.plan_name === 'Gratuito';
+    const daysLeft = calculateDaysLeft(profile.expires_at);
+
+    // ✅ LÓGICA DE TRAVA INTELIGENTE (Salva os seus 5 usuários antigos)
+    if (!isActive && (isFree || daysLeft <= 0)) {
       setShowPlansModal(true);
       return;
     }
 
-    if (!profile) return;
-    const isFree = !profile.plan_name || profile.plan_name === 'Gratuito';
-    const daysLeft = calculateDaysLeft(profile.expires_at);
-
-    if (!isFree && daysLeft <= 0) { alert("Seu plano expirou! Renove para continuar gerando."); setShowPlansModal(true); return; }
-    if (isFree && profile.credits <= 0) { setShowPlansModal(true); return; }
-
+    // Se for usuário gratuito e os créditos acabaram, trava.
+    if (isFree && profile.credits <= 0) { 
+      setShowPlansModal(true); 
+      return; 
+    }
     try {
       setError(null); setStep('processing');
       const safeGenerateTextJSON = async (prompt: string, schema: any) => {
