@@ -127,20 +127,20 @@ const PlansModal = ({ isOpen, onClose }: { isOpen: boolean; onClose: () => void 
   const handleSubscribe = (planoId: 'lite' | 'pro') => {
     const links = {
       lite: {
-        monthly: "https://www.mercadopago.com.br/subscriptions/checkout?preapproval_plan_id=7ccc437ef0de4371a86214de9666ff33",
-        yearly: "https://www.mercadopago.com.br/subscriptions/checkout?preapproval_plan_id=d5a990d75b864cbdba6aa40291d87beb"
+        monthly: "https://pay.kiwify.com.br/DSQXy6V",
+        yearly: "https://pay.kiwify.com.br/nXSrYRj"
       },
       pro: {
-        monthly: "https://www.mercadopago.com.br/subscriptions/checkout?preapproval_plan_id=3b1349aedb414c32bea4e793b8055de0",
-        yearly: "https://www.mercadopago.com.br/subscriptions/checkout?preapproval_plan_id=12c250c9a5ae453fbd1a5ce0c4cc55bb"
+        monthly: "https://pay.kiwify.com.br/G06X7TB",
+        yearly: "https://pay.kiwify.com.br/7Qyje9t"
       }
     };
     window.open(links[planoId][billingCycle], '_blank');
   };
 
   const content = {
-    lite: { price: billingCycle === 'monthly' ? '49,90' : '497,00', ads: billingCycle === 'monthly' ? '15 anúncios profissionais' : '180 anúncios profissionais' },
-    pro: { price: billingCycle === 'monthly' ? '97,00' : '967,00', ads: billingCycle === 'monthly' ? '60 anúncios profissionais' : '720 anúncios profissionais' }
+    lite: { price: billingCycle === 'monthly' ? '49,90' : '497,00', ads: billingCycle === 'monthly' ? '20 anúncios profissionais' : '240 anúncios profissionais' },
+    pro: { price: billingCycle === 'monthly' ? '97,00' : '967,00', ads: billingCycle === 'monthly' ? '50 anúncios profissionais' : '600 anúncios profissionais' }
   };
 
   return (
