@@ -262,17 +262,17 @@ export default function App() {
     const isFree = !profile.plan_name || profile.plan_name === 'Gratuito';
     const daysLeft = calculateDaysLeft(profile.expires_at);
 
-    // ✅ LÓGICA DE TRAVA INTELIGENTE (Salva os seus 5 usuários antigos)
-    if (!isActive && (isFree || daysLeft <= 0)) {
-      setShowPlansModal(true);
-      return;
-    }
-
-    // ✅ BLOQUEIO POR FALTA DE CRÉDITOS PARA TODOS OS PLANOS
-    // Se os créditos acabaram (seja grátis ou plano pago), trava.
+    // ✅ REGRA 1: Se os créditos zeraram (teste grátis ou plano pago), bloqueia e pede upgrade.
     if (profile.credits <= 0) { 
       setShowPlansModal(true); 
       return; 
+    }
+
+    // ✅ REGRA 2: Se for um plano Pago (Lite/Pro), mas os dias de acesso já venceram, bloqueia.
+    if (!isFree && daysLeft <= 0) {
+      alert("Seu plano expirou! Renove para continuar gerando.");
+      setShowPlansModal(true);
+      return;
     }
 
     try {
