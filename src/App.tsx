@@ -196,7 +196,7 @@ export default function App() {
   const [showPlansModal, setShowPlansModal] = useState(false);
   const [showLoginBox, setShowLoginBox] = useState(false);
 
-  // ✅ TRAVAS DE ACESSO REVISADAS
+  // ✅ TRAVAS DE ACESSO
   const [isActive, setIsActive] = useState(false);
   const [checkingAccess, setCheckingAccess] = useState(true);
 
@@ -215,7 +215,6 @@ export default function App() {
     return () => { listener.subscription.unsubscribe(); };
   }, []);
 
-  // ✅ CORREÇÃO: Checa se o usuário está ativo mas evita loop no login
   useEffect(() => {
     const checkUserAccess = async () => {
       if (!session) {
@@ -248,9 +247,6 @@ export default function App() {
           if (fallback.data) setProfile({ credits: fallback.data.credits, plan_name: 'Gratuito', expires_at: null });
         } else if (data) {
           setProfile(data as UserProfile);
-          const daysLeft = calculateDaysLeft(data.expires_at);
-          if (data.plan_name && data.plan_name !== 'Gratuito' && daysLeft <= 0) setShowPlansModal(true);
-          else if ((!data.plan_name || data.plan_name === 'Gratuito') && data.credits <= 0) setShowPlansModal(true);
         }
       } catch (e) { console.error(e); }
     };
@@ -260,6 +256,12 @@ export default function App() {
   const handleLogout = async () => { await supabase.auth.signOut(); setSession(null); setShowLoginBox(false); };
 
   const generateAIContent = async () => {
+    // ✅ NOVA LÓGICA DE TRAVA: Impede a geração de anúncio se o plano não estiver ativo
+    if (!isActive) {
+      setShowPlansModal(true);
+      return;
+    }
+
     if (!profile) return;
     const isFree = !profile.plan_name || profile.plan_name === 'Gratuito';
     const daysLeft = calculateDaysLeft(profile.expires_at);
@@ -370,12 +372,14 @@ export default function App() {
     }
   };
 
-  // ✅ LOGICA DE ROTEAMENTO REVISADA
+  // ✅ ROTAS
+  // Se não tiver sessão (deslogado), mostra Landing Page.
   if (!session) {
     if (showLoginBox) return <Login />;
     return <Landing onLoginClick={() => setShowLoginBox(true)} />;
   }
 
+  // Enquanto carrega os status de acesso
   if (checkingAccess) {
     return (
       <div className="min-h-screen bg-[#0F172A] flex items-center justify-center">
@@ -387,10 +391,8 @@ export default function App() {
     );
   }
 
-  // Se logado mas sem assinatura ativa, volta para a landing mas com o modal de planos aberto
-  if (!isActive) {
-    return <Landing onLoginClick={() => setShowPlansModal(true)} />;
-  }
+  // Se logado (ativo ou inativo), renderiza o sistema inteiro normalmente!
+  // O bloqueio agora acontece apenas dentro da função "generateAIContent".
 
   return (
     <div className="min-h-screen bg-[#0F172A] font-sans text-slate-900">
