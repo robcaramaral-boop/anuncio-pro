@@ -409,7 +409,7 @@ export default function Landing({ onLoginClick }: LandingProps) {
         <div className="max-w-5xl mx-auto">
           <div className="text-center mb-10">
             <h2 className="text-4xl md:text-5xl font-black text-white mb-4">Escolha seu Plano</h2>
-            <p className="text-slate-400 text-lg">Cancele quando quiser pelo painel do Mercado Pago.</p>
+            <p className="text-slate-400 text-lg">Créditos renovados a cada 30 dias, sem acúmulo de saldo anterior.</p>
           </div>
 
           <div className="flex items-center justify-center gap-4 mb-14">
