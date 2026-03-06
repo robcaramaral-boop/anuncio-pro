@@ -22,7 +22,9 @@ import {
   LogOut,
   User,
   ChevronDown,
-  Star
+  Star,
+  Camera,
+  MessageCircleQuestion
 } from 'lucide-react';
 
 // --- UTILITÁRIOS ---
@@ -31,7 +33,16 @@ type Marketplace = 'shopee' | 'ml';
 interface FormData { productName: string; marketplace: Marketplace; image: string | null; }
 interface UserProfile { credits: number; plan_name: string; expires_at: string | null; }
 interface ShopeeData { title: string; keywords: string[]; coverSuggestion: string; description: string; hashtags: string[]; }
-interface MLData { title: string; bullets: string[]; tags: string[]; description: string; }
+
+// ✅ ATUALIZADO: Nova interface MLData para suportar o novo prompt
+interface MLData { 
+  title: string; 
+  tags: string[]; 
+  description: string;
+  photoStructure: string[];
+  objections: { doubt: string; answer: string }[];
+}
+
 interface GeneratedData { marketplace: Marketplace; images: (string | null)[]; textData: ShopeeData | MLData; }
 interface AdProject { productName: string; originalImage: string | null; generatedImages: (string | null)[]; shopeeText: ShopeeData | null; mlText: MLData | null; }
 interface LastListing { timestamp: number; formData: FormData; adProject: AdProject; generatedData: GeneratedData; }
@@ -75,7 +86,6 @@ const Header = ({ handleLogout, profile, session, openPlans }: { handleLogout: (
         </div>
 
         <div className="flex items-center gap-3">
-          {/* ✅ MOSTRA OS CRÉDITOS PARA TODOS OS USUÁRIOS */}
           {profile && profile.credits !== undefined && (
             <div className="bg-orange-500/10 text-orange-500 px-3 py-1.5 rounded-full text-sm font-bold flex items-center gap-1.5 border border-orange-500/20">
               <Sparkles className="w-4 h-4" />
@@ -197,7 +207,6 @@ export default function App() {
   const [showPlansModal, setShowPlansModal] = useState(false);
   const [showLoginBox, setShowLoginBox] = useState(false);
 
-  // ✅ TRAVAS DE ACESSO
   const [isActive, setIsActive] = useState(false);
   const [checkingAccess, setCheckingAccess] = useState(true);
 
@@ -262,13 +271,11 @@ export default function App() {
     const isFree = !profile.plan_name || profile.plan_name === 'Gratuito';
     const daysLeft = calculateDaysLeft(profile.expires_at);
 
-    // ✅ REGRA 1: Se os créditos zeraram (teste grátis ou plano pago), bloqueia e pede upgrade.
     if (profile.credits <= 0) { 
       setShowPlansModal(true); 
       return; 
     }
 
-    // ✅ REGRA 2: Se for um plano Pago (Lite/Pro), mas os dias de acesso já venceram, bloqueia.
     if (!isFree && daysLeft <= 0) {
       alert("Seu plano expirou! Renove para continuar gerando.");
       setShowPlansModal(true);
@@ -294,9 +301,56 @@ export default function App() {
           const seoSchema = { type: Type.OBJECT, properties: { title: { type: Type.STRING }, keywords: { type: Type.ARRAY, items: { type: Type.STRING } }, coverSuggestion: { type: Type.STRING }, description: { type: Type.STRING }, hashtags: { type: Type.ARRAY, items: { type: Type.STRING } } }, required: ["title", "keywords", "coverSuggestion", "description", "hashtags"] };
           currentTextData = await safeGenerateTextJSON(`Especialista SEO Shopee para: ${formData.productName}`, seoSchema);
         } else {
-          setLoadingMessage('Criando SEO para Mercado Livre...');
-          const mlSchema = { type: Type.OBJECT, properties: { title: { type: Type.STRING }, bullets: { type: Type.ARRAY, items: { type: Type.STRING } }, tags: { type: Type.ARRAY, items: { type: Type.STRING } }, description: { type: Type.STRING } }, required: ["title", "bullets", "tags", "description"] };
-          currentTextData = await safeGenerateTextJSON(`Especialista SEO ML para: ${formData.productName}`, mlSchema);
+          setLoadingMessage('Criando SEO Platinum para Mercado Livre...');
+          
+          // ✅ ATUALIZADO: Novo schema estruturado para o ML
+          const mlSchema = { 
+            type: Type.OBJECT, 
+            properties: { 
+              title: { type: Type.STRING }, 
+              tags: { type: Type.ARRAY, items: { type: Type.STRING } }, 
+              photoStructure: { type: Type.ARRAY, items: { type: Type.STRING } }, 
+              description: { type: Type.STRING },
+              objections: {
+                type: Type.ARRAY,
+                items: {
+                  type: Type.OBJECT,
+                  properties: { doubt: { type: Type.STRING }, answer: { type: Type.STRING } },
+                  required: ["doubt", "answer"]
+                }
+              }
+            }, 
+            required: ["title", "tags", "photoStructure", "description", "objections"] 
+          };
+
+          // ✅ ATUALIZADO: O novo prompt completo de Especialista Platinum
+          const mlPromptText = `
+          ## 1. PERSONA E FUNÇÃO
+          Você é um Especialista Sênior em E-commerce, focado exclusivamente no algoritmo do Mercado Livre (Platinum). Você não age como um robô, mas como um copywriter de vendas agressivo e estratégico. Você domina SEO, psicologia de vendas e design de anúncios de alta conversão.
+
+          ## 2. SUAS FERRAMENTAS E MÉTODO (A "Fórmula Secreta")
+          A. Ferramentas: Planejador de Palavras-Chave do Google Ads. Fotos padrão Nano Banana (Fundo Branco Puro).
+          B. Estrutura do Título (Regra de Ouro): [Produto/Palavra-chave] + [Atributo Principal] + [Benefício] + [Modelo]. MÁXIMO de 60 caracteres.
+          C. Estrutura da Descrição:
+          1. Headline: Promessa forte e chamativa.
+          2. Benefícios: Lista em bullet points.
+          3. O que vem na caixa: Itens inclusos.
+          4. Ficha técnica: Resumida e clara.
+          5. FAQ: Perguntas frequentes antecipando dúvidas.
+          6. SEO: A palavra-chave principal deve aparecer exatamente 6 vezes ao longo do texto.
+          7. Ataque Preventivo: AVISO EM NEGRITO sobre a dúvida técnica mais comum.
+
+          ## 3. PRODUTO ALVO E REGRAS
+          Gere o conteúdo completo para o produto: ${formData.productName}
+          
+          Regras de Comportamento:
+          - Nunca use dados de contato ou promessas falsas.
+          - Use parágrafos curtos e leitura escaneável na descrição.
+          - Tom de Voz Profissional e Persuasivo (Adapte: Técnico para ferramentas, Emocional para moda/casa).
+          - Na estrutura de fotos retorne 5 itens detalhados.
+          `;
+
+          currentTextData = await safeGenerateTextJSON(mlPromptText, mlSchema);
         }
       }
 
@@ -344,7 +398,6 @@ export default function App() {
       });
       setHasLastListing(true);
 
-      // ✅ DESCONTA 1 CRÉDITO DE TODOS OS USUÁRIOS APÓS GERAR O ANÚNCIO
       const newCredits = profile.credits - 1;
       await supabase.from("profiles").update({ credits: newCredits }).eq("id", session.user.id);
       setProfile({ ...profile, credits: newCredits });
@@ -378,14 +431,11 @@ export default function App() {
     }
   };
 
-  // ✅ ROTAS
-  // Se não tiver sessão (deslogado), mostra Landing Page.
   if (!session) {
     if (showLoginBox) return <Login />;
     return <Landing onLoginClick={() => setShowLoginBox(true)} />;
   }
 
-  // Enquanto carrega os status de acesso
   if (checkingAccess) {
     return (
       <div className="min-h-screen bg-[#0F172A] flex items-center justify-center">
@@ -396,9 +446,6 @@ export default function App() {
       </div>
     );
   }
-
-  // Se logado (ativo ou inativo), renderiza o sistema inteiro normalmente!
-  // O bloqueio agora acontece apenas dentro da função "generateAIContent".
 
   return (
     <div className="min-h-screen bg-[#0F172A] font-sans text-slate-900">
@@ -518,10 +565,11 @@ const ShopeeResultCard = ({ data }: { data: ShopeeData }) => {
   );
 };
 
+// ✅ ATUALIZADO: Card de Resultado ML refeito para suportar Fotos e Objeções
 const MLResultCard = ({ data }: { data: MLData }) => {
   const [copied, setCopied] = useState(false);
   const copyToClipboard = () => {
-    const text = `TÍTULO:\n${data.title}\n\nBULLETS:\n${data.bullets?.map(b => `- ${b}`).join('\n')}\n\nDESCRIÇÃO:\n${data.description}\n\nPALAVRAS-CHAVE:\n${data.tags?.join(', ')}`;
+    const text = `TÍTULO (Max 60 chars):\n${data.title}\n\nESTRUTURA DE FOTOS:\n${data.photoStructure?.map((p, i) => `Foto ${i+1}: ${p}`).join('\n')}\n\nDESCRIÇÃO:\n${data.description}\n\nMATRIZ DE OBJEÇÕES:\n${data.objections?.map(o => `Q: ${o.doubt}\nR: ${o.answer}`).join('\n\n')}\n\nPALAVRAS-CHAVE:\n${data.tags?.join(', ')}`;
     navigator.clipboard.writeText(text);
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
@@ -535,9 +583,49 @@ const MLResultCard = ({ data }: { data: MLData }) => {
           {copied ? <Check className="w-4 h-4 text-emerald-500" /> : <Copy className="w-4 h-4" />} {copied ? 'Copiado!' : 'Copiar Tudo'}
         </button>
       </div>
-      <div><span className="text-[10px] font-black text-orange-500 uppercase tracking-widest mb-2 block">Título Otimizado</span><div className="bg-slate-50 p-4 rounded-xl border border-slate-100 font-bold text-slate-900">{data.title}</div></div>
-      <div><span className="text-[10px] font-black text-orange-500 uppercase tracking-widest mb-2 block">Bullet Points</span><ul className="space-y-2">{data.bullets?.map((b, i) => <li key={i} className="text-sm text-slate-700 bg-orange-50/50 p-3 rounded-lg border border-orange-100 flex items-start gap-2 font-medium"> <Check className="w-4 h-4 text-orange-500 shrink-0 mt-0.5" /> {b}</li>)}</ul></div>
-      <div><span className="text-[10px] font-black text-orange-500 uppercase tracking-widest mb-2 block">Descrição Persuasiva</span><div className="bg-slate-50 p-4 rounded-xl border border-slate-100 text-slate-600 text-sm whitespace-pre-wrap leading-relaxed">{data.description}</div></div>
+
+      <div>
+        <span className="text-[10px] font-black text-orange-500 uppercase tracking-widest mb-2 block">Título Otimizado (Regra de Ouro)</span>
+        <div className="bg-slate-50 p-4 rounded-xl border border-slate-100 font-bold text-slate-900">{data.title}</div>
+      </div>
+
+      <div>
+        <span className="text-[10px] font-black text-orange-500 uppercase tracking-widest mb-2 block flex items-center gap-1"><Camera className="w-3 h-3"/> Estrutura do Carrossel de Fotos</span>
+        <ul className="space-y-2">
+          {data.photoStructure?.map((photo, i) => (
+            <li key={i} className="text-sm text-slate-700 bg-slate-50 p-3 rounded-lg border border-slate-100 flex items-start gap-2"> 
+              <span className="font-black text-orange-500">{i+1}.</span> {photo}
+            </li>
+          ))}
+        </ul>
+      </div>
+
+      <div>
+        <span className="text-[10px] font-black text-orange-500 uppercase tracking-widest mb-2 block">Descrição Persuasiva</span>
+        <div className="bg-slate-50 p-4 rounded-xl border border-slate-100 text-slate-600 text-sm whitespace-pre-wrap leading-relaxed">{data.description}</div>
+      </div>
+
+      <div>
+        <span className="text-[10px] font-black text-orange-500 uppercase tracking-widest mb-2 block flex items-center gap-1"><MessageCircleQuestion className="w-3 h-3"/> Matriz de Objeções</span>
+        <div className="space-y-3">
+          {data.objections?.map((obj, i) => (
+            <div key={i} className="bg-orange-50/50 p-4 rounded-xl border border-orange-100 text-sm">
+              <p className="font-bold text-slate-900 mb-1">Dúvida: {obj.doubt}</p>
+              <p className="text-slate-600">Resposta: {obj.answer}</p>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      <div>
+        <span className="text-[10px] font-black text-orange-500 uppercase tracking-widest mb-2 block">Palavras-Chave (Tags)</span>
+        <div className="flex flex-wrap gap-2">
+          {data.tags?.map((tag, i) => (
+             <span key={i} className="text-slate-600 bg-slate-100 px-2 py-1 rounded-md font-bold text-xs">{tag}</span>
+          ))}
+        </div>
+      </div>
+
     </div>
   );
 };
